@@ -41,23 +41,41 @@ export class ZeroExtractionModel implements PaymentIntentModel {
       input: instruction,
       params: { schema: JSON.stringify(schema) },
     };
-    const { stdout } = await execFileAsync(
-      this.binary,
-      [
-        'fetch',
-        '--json',
-        '--timeout',
-        '60',
-        '--max-pay',
-        this.maxPay,
-        '--capability',
-        CAPABILITY,
-        ENDPOINT,
-        '-d',
-        JSON.stringify(request),
-      ],
-      { timeout: 90_000, maxBuffer: 2 * 1024 * 1024 },
-    );
+    const args = [
+      'fetch',
+      '--json',
+      '--timeout',
+      '60',
+      '--max-pay',
+      this.maxPay,
+      '--capability',
+      CAPABILITY,
+      ENDPOINT,
+      '-d',
+      JSON.stringify(request),
+    ];
+    let stdout: string;
+    try {
+      ({ stdout } = await execFileAsync(this.binary, args, {
+        timeout: 90_000,
+        maxBuffer: 2 * 1024 * 1024,
+      }));
+    } catch (error) {
+      const captured = (error as { stdout?: unknown }).stdout;
+      if (typeof captured === 'string') {
+        try {
+          const failed = JSON.parse(captured) as ZeroEnvelope;
+          throw new Error(
+            `Zero extraction unavailable${failed.diagnostics?.failureCode ? `: ${String(failed.diagnostics.failureCode)}` : ''}`,
+          );
+        } catch (parseError) {
+          if (parseError instanceof Error && parseError.message.startsWith('Zero extraction')) {
+            throw parseError;
+          }
+        }
+      }
+      throw new Error('Zero extraction process failed');
+    }
     const envelope = JSON.parse(stdout) as ZeroEnvelope;
     if (
       !envelope.ok ||
