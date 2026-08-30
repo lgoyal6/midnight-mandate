@@ -102,6 +102,10 @@ The first observer panel selected fields from a combined owner/observer response
 
 The first recovery milestone was contract/client/smoke complete but not visible in the owner UI. The real demo API now exposes a gated owner-console action only after the valid payment and all four rejection checks. Browser verification confirmed the close transaction, owner recovery `+45`, vault `0`, lifecycle `closed`, disabled payment controls, and an isolated observer response with no private-key fields. This local server is not a production authentication boundary and must not be exposed to an untrusted network.
 
+### Cold-start take exceeded the video limit
+
+The first real browser recording included vault initialization and lasted 137.2 seconds, exceeding the 120-second submission limit. Initialization alone took 45 seconds. Initializing before recording produced a 34.5-second silent clean take containing proposal creation, a real proof-backed payment, and all four rejection paths. Rehearsal timing and transaction identifiers are recorded in [`evidence/demo-rehearsal.json`](../evidence/demo-rehearsal.json). The final narrated take still needs the required hackathon-name opening and public signed-out verification.
+
 ## Individual teammate steps
 
 - Everyone: install pinned Node/Yarn/Compact/Docker and run `yarn demo:smoke`.

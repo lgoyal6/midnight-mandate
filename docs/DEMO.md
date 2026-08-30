@@ -14,6 +14,10 @@ yarn demo:ui
 
 Open the owner console at `http://127.0.0.1:5173` and public-only view at `http://127.0.0.1:5173/observer`. Close notifications and any secret-bearing windows. Use the deterministic proposal mode for recording reliability.
 
+Initialize the vault **before** starting the final recording. A measured cold initialization took 45 seconds and made an otherwise valid raw take 137.2 seconds long. With the vault already ready, the complete proposal, real proof/payment, and four-attack sequence recorded in 34.5 seconds. That leaves 85.5 seconds for the required opening, explanation, and deliberate pacing.
+
+The checked-in rehearsal evidence is [`evidence/demo-rehearsal.json`](../evidence/demo-rehearsal.json). The silent WebM stays local and is intentionally ignored; it is evidence for the team, not the final public submission.
+
 ## Script
 
 ### 0:00–0:12 — Problem
@@ -60,3 +64,12 @@ The required take can stop here. For judge Q&A or a longer live walkthrough, run
 - Trimming proof wait time is fine, but do not splice a success onto a different proposal.
 - Never show a mnemonic, seed, private `.env`, proof preimage, API credential, notification, or personal browser data.
 - Confirm the public video is two minutes or less and remains public.
+
+Measure the exported file rather than trusting the editor timeline:
+
+```bash
+ffprobe -v error -show_entries format=duration \
+  -of default=noprint_wrappers=1:nokey=1 final-demo.mp4
+```
+
+The printed value must be `120.0` seconds or less. Watch the entire export once after this check; duration alone does not verify the opening, audio, legibility, continuity, or secret safety.

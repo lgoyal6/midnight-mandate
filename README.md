@@ -33,6 +33,8 @@ This prototype provides **private mandate enforcement with public unshielded set
 
 Latest checked-in local evidence is in [`evidence/local-smoke.json`](evidence/local-smoke.json). Preprod is not claimed until [`docs/PREPROD.md`](docs/PREPROD.md) records a successful public transaction.
 
+The latest timed browser rehearsal is in [`evidence/demo-rehearsal.json`](evidence/demo-rehearsal.json): the initialized real proof/payment plus four rejection paths fit in 34.5 seconds, leaving room for the required two-minute narration. It is a silent local backup, not the final public submission video.
+
 The frozen install, full verification gate, and complete payment/recovery smoke were rerun successfully from a clean public GitHub clone of commit `33fb4b4`. The independent Linux CI gate passed on the same commit.
 
 ## Architecture

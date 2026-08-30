@@ -1,0 +1,47 @@
+{
+  "network": "undeployed",
+  "rehearsalKind": "silent local backup",
+  "submissionReady": false,
+  "submissionBlockers": [
+    "add the required spoken hackathon-name opening",
+    "record and review the narrated event-weekend take",
+    "upload the final video publicly",
+    "verify the public video while signed out"
+  ],
+  "observedTimingSeconds": {
+    "coldVaultInitialization": 45,
+    "typedProposal": 1,
+    "proofAndPayment": 21,
+    "overCapRejection": 1,
+    "cumulativeBudgetRejection": 1,
+    "wrongRecipientRejection": 1,
+    "replayRejection": 1,
+    "coldStartRawTake": 137.2,
+    "initializedCleanTake": 34.5,
+    "submissionLimit": 120
+  },
+  "cleanTake": {
+    "localPath": "artifacts/demo-clean-real.webm",
+    "tracked": false,
+    "contractAddress": "cdeba0de4f98560f9e39dca2fc0df7ec035953c084f052f19e78f1445e4117f3",
+    "deploymentTransactionId": "00d9de829519f79c9675c8f880febcf3f96561dcd61c8729de349e16a17d581395",
+    "paymentTransactionId": "009c1ed593c8b46ed8a15a811270c5f9aca5fcc6b37906c79bf94178a17e212c01",
+    "vaultBeforePayment": "50",
+    "vaultAfterPayment": "45",
+    "cumulativeSpendAfterPayment": "5",
+    "rejectedWithoutMovement": [
+      "over-cap",
+      "cumulative-budget",
+      "wrong-recipient",
+      "replay"
+    ]
+  },
+  "browserVerification": {
+    "viteOverlay": false,
+    "browserErrors": [],
+    "publicObserverPrivateFieldLabelsAbsent": true,
+    "publicObserverPrivateInstructionAbsent": true,
+    "finalScreenshot": "artifacts/ui-demo-final.png"
+  },
+  "recordedAt": "2026-08-30T05:57:56Z"
+}

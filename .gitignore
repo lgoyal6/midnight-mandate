@@ -3,6 +3,9 @@ dist/
 contracts/managed/
 midnight-level-db/
 artifacts/*.json
+artifacts/*.webm
+artifacts/ui-rehearsal-*.png
+artifacts/ui-recording-ready.png
 !.gitkeep
 .env
 .env.*
@@ -10,4 +13,3 @@ artifacts/*.json
 *.log
 .DS_Store
 coverage/
-
