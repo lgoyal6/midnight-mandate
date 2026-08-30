@@ -1,0 +1,13 @@
+node_modules/
+dist/
+contracts/managed/
+midnight-level-db/
+artifacts/*.json
+!.gitkeep
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+coverage/
+

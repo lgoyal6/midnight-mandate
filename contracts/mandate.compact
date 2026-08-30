@@ -1,0 +1,112 @@
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+// Private values supplied by the delegated runtime during proof generation.
+witness policy_secret(): Bytes<32>;
+witness max_per_payment(): Uint<128>;
+witness allowed_recipient(): Bytes<32>;
+
+// Only commitments, replay nullifiers, receipts, and aggregate counters are
+// public. The cap and preconfigured recipient are never ledger fields.
+export ledger policy_commitment: Bytes<32>;
+export ledger used_nullifiers: Set<Bytes<32>>;
+export ledger payment_receipts: Map<Bytes<32>, Bytes<32>>;
+export ledger payment_count: Uint<64>;
+export ledger night_balances: Map<Bytes<32>, Uint<128>>;
+
+export pure circuit derive_policy_commitment(
+  secret: Bytes<32>,
+  cap: Uint<128>,
+  recipient: Bytes<32>,
+): Bytes<32> {
+  return persistentHash<[Bytes<32>, Bytes<32>, Uint<128>, Bytes<32>]>([
+    pad(32, "midnight-mandate:policy:v1"),
+    secret,
+    cap,
+    recipient,
+  ]);
+}
+
+export pure circuit derive_payment_nullifier(
+  secret: Bytes<32>,
+  nonce: Bytes<32>,
+): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([
+    pad(32, "midnight-mandate:nullifier:v1"),
+    secret,
+    nonce,
+  ]);
+}
+
+constructor(initial_policy_commitment: Bytes<32>) {
+  policy_commitment = disclose(initial_policy_commitment);
+  payment_count = 0 as Uint<64>;
+}
+
+circuit credit_night(color: Bytes<32>, amount: Uint<128>): [] {
+  if (night_balances.member(color)) {
+    night_balances.insert(
+      color,
+      ((night_balances.lookup(color) + amount) as Uint<128>)
+    );
+  } else {
+    night_balances.insert(color, amount);
+  }
+}
+
+circuit debit_night(color: Bytes<32>, amount: Uint<128>): [] {
+  assert(night_balances.member(color), "no balance for colour");
+  const balance = night_balances.lookup(color);
+  assert(balance >= amount, "insufficient balance");
+  night_balances.insert(color, ((balance - amount) as Uint<128>));
+}
+
+// Permissionless funding. The unshielded color and amount are public.
+export circuit deposit_night(color: Bytes<32>, amount: Uint<128>): [] {
+  const c = disclose(color);
+  const a = disclose(amount);
+  assert(a > (0 as Uint<128>), "deposit amount must be positive");
+  receiveUnshielded(c, a);
+  credit_night(c, a);
+}
+
+// The exact checked amount and recipient are the values sent by this circuit.
+export circuit agent_pay(
+  color: Bytes<32>,
+  amount: Uint<128>,
+  recipient: UserAddress,
+  request_commitment: Bytes<32>,
+  nonce: Bytes<32>,
+): [] {
+  const c = disclose(color);
+  const a = disclose(amount);
+  const r = disclose(recipient);
+  const receipt = disclose(request_commitment);
+
+  const secret = policy_secret();
+  const cap = max_per_payment();
+  const allowed = allowed_recipient();
+
+  assert(
+    derive_policy_commitment(secret, cap, allowed) == policy_commitment,
+    "private policy does not open commitment"
+  );
+  assert(r.bytes == allowed, "recipient outside mandate");
+  assert(a > (0 as Uint<128>), "payment amount must be positive");
+  assert(a <= cap, "private payment cap exceeded");
+
+  const nullifier = disclose(derive_payment_nullifier(secret, nonce));
+  assert(!used_nullifiers.member(nullifier), "payment nonce already used");
+
+  debit_night(c, a);
+  used_nullifiers.insert(nullifier);
+  payment_receipts.insert(nullifier, receipt);
+  payment_count = ((payment_count + (1 as Uint<64>)) as Uint<64>);
+
+  sendUnshielded(
+    c,
+    a,
+    right<ContractAddress, UserAddress>(r)
+  );
+}
