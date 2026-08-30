@@ -139,7 +139,7 @@ Show: the three-step architecture and roadmap, then stop recording.
 
 ## Final public-release gate
 
-- [ ] Team has 4 or fewer members unless MLH has explicitly resolved the conflicting cap in writing.
+- [ ] Team has 5 or fewer members.
 - [ ] Every teammate completed Devpost registration and MLH registration/check-in with matching email addresses.
 - [ ] Repository and video are public and will remain public after the event.
 - [ ] Repository was not submitted to another hackathon.

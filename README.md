@@ -174,6 +174,9 @@ These comparisons describe the inspected public repositories, not claims about t
 
 ## Documentation and provenance
 
+- [`RESEARCH.md`](RESEARCH.md) — current platform, tracks, winners, submission rules, idea pressure test, and build-only open questions, with inline sources.
+- [`SETUP.md`](SETUP.md) — exact pinned teammate installation and one-command acceptance runbook.
+- [`submission_req.md`](submission_req.md) — exact submission requirements supplied for the team checklist.
 - [`docs/REPRODUCE.md`](docs/REPRODUCE.md) — exact teammate runbook and encountered errors.
 - [`docs/DEMO.md`](docs/DEMO.md) — two-minute recording path.
 - [`docs/PREPROD.md`](docs/PREPROD.md) — public-network runner and current human gate.

@@ -28,11 +28,13 @@ yarn verify
 git switch -c teammate/<short-task-name>
 ```
 
-For the real local proof/payment path, also install the pinned Compact toolchain and Docker services from [`docs/REPRODUCE.md`](docs/REPRODUCE.md), then run:
+Read [`SETUP.md`](SETUP.md) first. It contains the pinned Compact/Docker setup, every encountered environment error, the optional Preprod wallet step, and the acceptance command:
 
 ```bash
 yarn demo:smoke
 ```
+
+For product/track context, use [`RESEARCH.md`](RESEARCH.md). For the non-negotiable Devpost gate, use [`submission_req.md`](submission_req.md) and [`SUBMISSION.md`](SUBMISSION.md).
 
 ## What is already verified
 
