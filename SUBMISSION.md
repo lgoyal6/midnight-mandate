@@ -44,8 +44,8 @@ The prototype deliberately does not claim private settlement: successful amount 
 - Real local proof/payment: vault `50 → 45`, vendor `+5`.
 - Real recovery: a distinct owner-secret proof returned the remaining `45`, left vault balance `0`, and set it permanently inactive.
 - Real negative paths: over-cap, cumulative-budget, wrong-recipient, replay, and post-close payment all rejected with unchanged balances and state.
-- Fresh public-clone reproduction: frozen install, full verification, and one-command smoke all passed from commit `366e0a3`; its independent Linux CI gate also passed.
-- Public-clone payment transaction: `00991a4e08d7118be3290494349741f7de07dd7a6fe8fdb906cd55a4b9fe173898` on the local development network.
+- Fresh public-clone reproduction: frozen install, full verification, and the complete one-command payment/recovery smoke all passed from commit `33fb4b4`; its independent Linux CI gate also passed.
+- Public-clone local transactions: payment `00899429e1988283d4b1580ed1e5135a4899a72d59bbd04ba1376e6d47f3f94648`; owner close `00b9ed3bffa711075165aa5bbc6f21402a46541270c1646864ef1f0eb2850b9cbe`.
 - Preprod: network and runner verified, but no deployment is claimed without a team-owned funded test wallet.
 
 The public repository contains machine-readable receipts in [`evidence/`](evidence/), the contract in [`contracts/mandate.compact`](contracts/mandate.compact), the security boundary in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md), and upstream attribution in [`UPSTREAM.md`](UPSTREAM.md).
