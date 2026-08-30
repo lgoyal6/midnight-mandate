@@ -25,8 +25,8 @@ Run this once before the final take. It is deliberately the same path the video 
 1. Wait until the terminal prints both `MIDNIGHT_STACK_READY` and `MANDATE_DEMO_API_READY`.
 2. Select **Initialize real vault** and wait for **Vault ready**. Do this before recording.
 3. Open `/observer` in a second window. It should show payment count `0`, cumulative spend `0`, vault `50`, and no private caps or invoice text.
-4. In the owner window, select **Create typed proposal**, then **Prove & pay**. Wait for the transaction ID and `50 → 45` vault change.
-5. Without reloading the observer window, confirm it updates within three seconds to payment count `1`, cumulative spend `5`, and vault `45`.
+4. In the owner window, select **Create typed proposal**, then **Prove & pay**. Wait for the transaction ID, `50 → 45` vault change, and green **On-ledger receipt · Exact request verified** card.
+5. Without reloading the observer window, confirm it updates within three seconds to payment count `1`, cumulative spend `5`, vault `45`, and **Receipt integrity: exact request verified**.
 6. Run each attack once. Each card must become disabled with **Rejected · zero balance movement**, ending at **4/4 blocked**.
 7. For the rehearsal only, select **Recover 45 & close**. Confirm owner and observer both reach vault `0` and lifecycle `closed`; the observer must update without a manual reload.
 8. Stop and restart `yarn demo:ui`, initialize a fresh vault, and then record the shorter script below without the recovery beat.
@@ -51,9 +51,9 @@ Use: `Pay 5 NIGHT to vendor for invoice INV-42`.
 
 Create the typed proposal, then select **Prove & pay**.
 
-“The model can propose only an amount, allow-listed alias, and purpose. Code binds the real address, network, contract, nonce, and request hash. The same Compact circuit verifies the private rule and sends the exact checked values.”
+“The model proposes only amount, alias, and purpose; code binds the address, contract, nonce, and hash. One Compact call proves the hidden rule, pays the checked values, and records this exact hash as its public receipt.”
 
-Show transaction ID, vault `50 → 45`, and vendor `+5`.
+Show transaction ID, vault `50 → 45`, vendor `+5`, and the exact-request receipt confirmation.
 
 ### 0:58–1:30 — Break it
 

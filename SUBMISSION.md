@@ -43,6 +43,7 @@ The prototype deliberately does not claim private settlement: successful amount 
 - Proposal authority boundary: 12/12 tests passed.
 - Live AI extraction: a current paid schema-guided call returned the exact allowed three-field proposal in 5.2 seconds; the deterministic adapter remains the recording-safe path.
 - Real local proof/payment: vault `50 → 45`, vendor `+5`.
+- Exact receipt binding: the indexed public receipt map contains the consumed nullifier and maps it to the successful proposal's exact request hash.
 - Real recovery: a distinct owner-secret proof returned the remaining `45`, left vault balance `0`, and set it permanently inactive.
 - Browser recovery: the owner control stayed disabled until 4/4 rejection checks passed, then confirmed close transaction `00e768b67c3160dfba50b5c5182e85f629e5f046116fe5229789abbe053e305ac3`; the public observer showed `closed` without either secret.
 - Two-window observer regression: the untouched public window automatically advanced from payment count `0`/vault `50` to `1`/`45`, then to vault `0`/`closed`; the response contained zero forbidden owner, proposal, instruction, or attack keys.
@@ -104,9 +105,9 @@ Show: owner view, then `/observer`. Do not reveal any wallet seed or secret.
 
 ### 0:27–0:55 — real proposal, proof, and payment
 
-> The agent proposes five test NIGHT for a data job. The AI can suggest only amount, an approved alias, and purpose. Deterministic code binds the real address and request data. Now one Compact circuit checks the private mandate and pays the checked recipient from the contract-held vault.
+> The agent proposes five test NIGHT for a data job. The AI can suggest only amount, an approved alias, and purpose. Deterministic code binds the real address and request data. Now one Compact circuit checks the private mandate, pays the checked recipient from the contract-held vault, and records this exact request hash as its receipt.
 
-Show: create proposal, select **Prove & pay**, then the transaction ID and balances `50 → 45`, vendor `+5`. Trim only inactive proof wait; do not splice a different request into the success.
+Show: create proposal, select **Prove & pay**, then the transaction ID, balances `50 → 45`, vendor `+5`, and **Exact request verified** receipt card. Trim only inactive proof wait; do not splice a different request into the success.
 
 ### 0:55–1:23 — two different budget attacks
 

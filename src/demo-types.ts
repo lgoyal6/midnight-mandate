@@ -11,6 +11,13 @@ export type DemoEvent = {
   transactionId?: string;
 };
 
+export type PublicPaymentReceipt = {
+  nullifier: string;
+  requestCommitment: string;
+  transactionId: string;
+  verifiedOnLedger: true;
+};
+
 export type DemoSnapshot = {
   phase: 'cold' | 'ready' | 'proposed' | 'paid' | 'closed';
   owner: null | {
@@ -44,6 +51,7 @@ export type DemoSnapshot = {
     cumulativeSpend: string;
     usedNullifiers: string;
     paymentReceipts: string;
+    latestReceipt: PublicPaymentReceipt | null;
   };
   vendorBalance: string | null;
   attacks: Record<AttackKind, AttackStatus>;

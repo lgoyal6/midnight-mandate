@@ -18,6 +18,9 @@ describe('Midnight Mandate local proof and payment', () => {
     expect(BigInt(evidence.vaultBeforePayment) - BigInt(evidence.vaultAfterPayment)).toBe(5n);
     expect(BigInt(evidence.vendorAfterPayment) - BigInt(evidence.vendorBeforePayment)).toBe(5n);
     expect(evidence.cumulativeSpendAfterPayment).toBe('5');
+    expect(evidence.receiptVerifiedOnLedger).toBe(true);
+    expect(evidence.paymentNullifier).toMatch(/^[0-9a-f]{64}$/);
+    expect(evidence.requestCommitment).toMatch(/^[0-9a-f]{64}$/);
     expect(BigInt(evidence.ownerAfterRecovery) - BigInt(evidence.ownerBeforeRecovery)).toBe(45n);
     expect(evidence.vaultAfterClose).toBe('0');
     expect(evidence.activeAfterClose).toBe(false);

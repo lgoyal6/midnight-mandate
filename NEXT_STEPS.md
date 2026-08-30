@@ -40,6 +40,7 @@ For product/track context, use [`RESEARCH.md`](RESEARCH.md). For the non-negotia
 
 - Private per-payment cap, cumulative ceiling, recipient, and policy secret are bound into one Compact commitment.
 - One real local transaction paid 5 NIGHT from contract custody and advanced public cumulative spend to 5.
+- The successful proposal's exact request hash is verified against its indexed `payment_receipts[nullifier]` entry and appears in the public observer.
 - Four real adversarial calls reject with zero movement: over-cap, cumulative-budget, wrong-recipient, and replay.
 - A separately committed owner secret recovered the remaining 45, set the vault balance to zero, and permanently closed deposits and agent payments.
 - The aggregate case is deliberately nontrivial: after spending 5, a fresh 8 is below the 10-per-payment cap but exceeds the hidden total of 12.

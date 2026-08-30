@@ -7,10 +7,11 @@ import { zkConfigPath } from '../contracts/index.js';
 import { MandateClient } from './client.js';
 import { FixturePaymentIntentModel, proposalFromModel } from './agent/model.js';
 import { proposalToMandatePayment } from './agent/proposal.js';
+import { paymentNullifier } from './contract.js';
 import { getConfig } from './config.js';
 import { buildProviders } from './providers.js';
 import { MidnightWalletProvider, syncWallet } from './wallet.js';
-import { hexToBytes32, randomBytes32 } from './wallet/hex.js';
+import { bytesToHex, hexToBytes32, randomBytes32 } from './wallet/hex.js';
 import {
   balanceEntries,
   balanceFor,
@@ -34,6 +35,9 @@ export type LocalSmokeEvidence = {
   deploymentTxId: string;
   depositTxId: string;
   paymentTxId: string;
+  paymentNullifier: string;
+  requestCommitment: string;
+  receiptVerifiedOnLedger: true;
   color: string;
   vaultBeforePayment: string;
   vaultAfterPayment: string;
@@ -205,6 +209,7 @@ export async function runLocalSmoke(options?: {
       contractAddress: String(client.contractAddress),
     });
     const requestCommitment = validPayment.requestCommitment;
+    const validNullifier = paymentNullifier(policySecret, validNonce);
     const paymentTxId = await client.pay(validPayment);
     const paidLedger = await client.inspect();
     invariant(
@@ -215,6 +220,15 @@ export async function runLocalSmoke(options?: {
     invariant(
       paidLedger.cumulative_spend === VALID_AMOUNT,
       'cumulative spend must equal the successful payment',
+    );
+    invariant(
+      paidLedger.used_nullifiers.member(validNullifier),
+      'successful payment nullifier must be recorded on ledger',
+    );
+    invariant(
+      bytesToHex(paidLedger.payment_receipts.lookup(validNullifier)) ===
+        validProposal.requestHash,
+      'on-ledger receipt must equal the exact proposal request commitment',
     );
 
     const vendorAfter = await waitForWalletBalance(
@@ -388,6 +402,9 @@ export async function runLocalSmoke(options?: {
       deploymentTxId,
       depositTxId,
       paymentTxId,
+      paymentNullifier: bytesToHex(validNullifier),
+      requestCommitment: bytesToHex(paidLedger.payment_receipts.lookup(validNullifier)),
+      receiptVerifiedOnLedger: true,
       color: colorHex,
       vaultBeforePayment: DEPOSIT.toString(),
       vaultAfterPayment: (DEPOSIT - VALID_AMOUNT).toString(),

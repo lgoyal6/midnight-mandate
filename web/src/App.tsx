@@ -210,6 +210,19 @@ function CommandCenter() {
               <div><span>Request hash</span><code>{short(state.agent.proposal.requestHash, 7)}</code></div>
             </div>
           )}
+          {state.observer?.latestReceipt && (
+            <div className="receipt-card" aria-live="polite">
+              <div>
+                <span>On-ledger receipt</span>
+                <strong>Exact request verified</strong>
+              </div>
+              <p>
+                Receipt <code>{short(state.observer.latestReceipt.requestCommitment, 7)}</code>
+                {' '}matches the proposed request hash; nullifier{' '}
+                <code>{short(state.observer.latestReceipt.nullifier, 7)}</code> is consumed.
+              </p>
+            </div>
+          )}
         </article>
 
         <article className="panel observer-panel">
@@ -225,6 +238,7 @@ function CommandCenter() {
             <div><span>Successful payments</span><strong>{state.observer?.paymentCount ?? '—'}</strong></div>
             <div><span>Cumulative public spend</span><strong>{state.observer?.cumulativeSpend ?? '—'} NIGHT</strong></div>
             <div><span>Used nullifiers</span><strong>{state.observer?.usedNullifiers ?? '—'}</strong></div>
+            <div><span>Latest receipt</span><strong className={state.observer?.latestReceipt ? 'safe' : ''}>{state.observer?.latestReceipt ? 'exact request verified' : '—'}</strong></div>
             <div><span>Public vault balance</span><strong>{state.observer?.vaultBalance ?? '—'} NIGHT</strong></div>
             <div><span>Hidden from this view</span><strong className="safe">both caps · preset recipient · secret</strong></div>
           </div>
@@ -362,6 +376,9 @@ function ObserverPage() {
             <div><span>Successful payments</span><strong>{state.observer?.paymentCount ?? '—'}</strong></div>
             <div><span>Cumulative spend</span><strong>{state.observer?.cumulativeSpend ?? '—'} NIGHT</strong></div>
             <div><span>Nullifiers / receipts</span><strong>{state.observer?.usedNullifiers ?? '—'} / {state.observer?.paymentReceipts ?? '—'}</strong></div>
+            <div><span>Receipt integrity</span><strong className={state.observer?.latestReceipt ? 'safe' : ''}>{state.observer?.latestReceipt ? 'exact request verified' : '—'}</strong></div>
+            <div><span>Latest request commitment</span><code>{short(state.observer?.latestReceipt?.requestCommitment, 14)}</code></div>
+            <div><span>Latest nullifier</span><code>{short(state.observer?.latestReceipt?.nullifier, 14)}</code></div>
             <div><span>Vendor public balance</span><strong>{state.vendorBalance ?? '—'} NIGHT</strong></div>
           </div>
         </div>

@@ -8,6 +8,7 @@ import {
   proposalToMandatePayment,
   type PaymentProposalV1,
 } from './agent/proposal.js';
+import { paymentNullifier } from './contract.js';
 import { ZeroExtractionModel } from './agent/zero-extractor.js';
 import { MandateClient } from './client.js';
 import { LOCAL_CONFIG } from './config.js';
@@ -16,6 +17,7 @@ import type {
   DemoEvent,
   DemoMode,
   DemoSnapshot,
+  PublicPaymentReceipt,
   PublicObserverSnapshot,
 } from './demo-types.js';
 import { buildProviders } from './providers.js';
@@ -90,8 +92,10 @@ export class LocalDemoSession {
   private colorHex?: string;
   private vendorAddress?: Uint8Array;
   private vendorAddressHex?: string;
+  private policySecret?: Uint8Array;
   private proposal: PaymentProposalV1 | null = null;
   private paidProposal: PaymentProposalV1 | null = null;
+  private paymentNullifierHex: string | null = null;
   private instruction = '';
   private mode: DemoMode = 'deterministic';
   private paymentTxId: string | null = null;
@@ -205,6 +209,7 @@ export class LocalDemoSession {
       this.colorHex = colorHex;
       this.vendorAddress = vendorAddress;
       this.vendorAddressHex = vendorAddressHex;
+      this.policySecret = policySecret;
       this.event(
         'system',
         `Deployed and funded a private mandate vault with ${INITIAL_BUDGET} NIGHT.`,
@@ -250,6 +255,8 @@ export class LocalDemoSession {
       networkId: 'undeployed',
       contractAddress: String(ready.client.contractAddress),
     });
+    invariant(this.policySecret, 'policy secret must remain available only to the proving session');
+    const nullifier = paymentNullifier(this.policySecret, payment.nonce);
     const transactionId = await ready.client.pay(payment);
     const afterLedger = await ready.client.inspect();
     const vendorAfterState = await waitForWalletBalance(
@@ -263,7 +270,16 @@ export class LocalDemoSession {
       'vault must decrease by the proposal amount',
     );
     invariant(vendorAfter - vendorBefore === payment.amount, 'vendor must receive proposal amount');
+    invariant(
+      afterLedger.used_nullifiers.member(nullifier),
+      'successful payment nullifier must be recorded on ledger',
+    );
+    invariant(
+      bytesToHex(afterLedger.payment_receipts.lookup(nullifier)) === this.proposal.requestHash,
+      'on-ledger receipt must equal the exact proposal request commitment',
+    );
     this.paidProposal = this.proposal;
+    this.paymentNullifierHex = bytesToHex(nullifier);
     this.paymentTxId = transactionId;
     this.event(
       'payment',
@@ -414,6 +430,7 @@ export class LocalDemoSession {
     const ledger = await ready.client.inspect();
     const vaultBalance = ledger.night_balances.lookup(ready.color).toString();
     const vendorBalance = balanceFor(await walletState(ready.vendor), ready.colorHex).toString();
+    const latestReceipt = this.latestReceipt(ledger);
     return {
       phase: !ledger.active
         ? 'closed'
@@ -453,6 +470,7 @@ export class LocalDemoSession {
         cumulativeSpend: ledger.cumulative_spend.toString(),
         usedNullifiers: ledger.used_nullifiers.size().toString(),
         paymentReceipts: ledger.payment_receipts.size().toString(),
+        latestReceipt,
       },
       vendorBalance,
       attacks: { ...this.attackStatus },
@@ -474,6 +492,7 @@ export class LocalDemoSession {
     const ledger = await ready.client.inspect();
     const vaultBalance = ledger.night_balances.lookup(ready.color).toString();
     const vendorBalance = balanceFor(await walletState(ready.vendor), ready.colorHex).toString();
+    const latestReceipt = this.latestReceipt(ledger);
 
     return {
       phase: !ledger.active ? 'closed' : ledger.payment_count > 0n ? 'paid' : 'ready',
@@ -489,6 +508,7 @@ export class LocalDemoSession {
         cumulativeSpend: ledger.cumulative_spend.toString(),
         usedNullifiers: ledger.used_nullifiers.size().toString(),
         paymentReceipts: ledger.payment_receipts.size().toString(),
+        latestReceipt,
       },
       vendorBalance,
       events: this.events.filter(
@@ -503,5 +523,25 @@ export class LocalDemoSession {
     this.owner = undefined;
     this.vendor = undefined;
     this.client = undefined;
+    this.policySecret = undefined;
+  }
+
+  private latestReceipt(
+    ledger: Awaited<ReturnType<MandateClient['inspect']>>,
+  ): PublicPaymentReceipt | null {
+    if (!this.paidProposal || !this.paymentTxId || !this.paymentNullifierHex) return null;
+    const nullifier = hexToBytes32(this.paymentNullifierHex);
+    invariant(ledger.used_nullifiers.member(nullifier), 'public nullifier must exist on ledger');
+    const requestCommitment = bytesToHex(ledger.payment_receipts.lookup(nullifier));
+    invariant(
+      requestCommitment === this.paidProposal.requestHash,
+      'public receipt must match the paid request commitment',
+    );
+    return {
+      nullifier: this.paymentNullifierHex,
+      requestCommitment,
+      transactionId: this.paymentTxId,
+      verifiedOnLedger: true,
+    };
   }
 }

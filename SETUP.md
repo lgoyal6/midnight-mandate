@@ -149,6 +149,26 @@ yarn demo:ui
 
 Open `http://127.0.0.1:5173`. **Initialize real vault** deploys and funds a fresh contract. **Prove & pay** drives the Compact call through the TypeScript client and proof server. The four attack buttons must each report zero balance movement; **Recover 45 & close** then proves the owner opening and permanently closes the vault. The isolated public projection is at `http://127.0.0.1:5173/observer`. ([Demo runbook](https://github.com/lgoyal6/midnight-mandate/blob/main/docs/DEMO.md), [architecture](https://github.com/lgoyal6/midnight-mandate/blob/main/docs/ARCHITECTURE.md))
 
+Optional private teammate host: if both people are authorized on the same Tailscale tailnet, install/sign in to Tailscale and `jq`, then start the app with its exact tailnet hostname allow-listed:
+
+```bash
+export MANDATE_TAILNET_HOST="$(tailscale status --json | jq -r '.Self.DNSName | rtrimstr(".")')"
+MANDATE_ALLOWED_HOSTS="$MANDATE_TAILNET_HOST" yarn demo:ui
+```
+
+In another terminal:
+
+```bash
+tailscale serve --bg --yes http://127.0.0.1:5173
+tailscale serve status
+```
+
+Open `https://$MANDATE_TAILNET_HOST/`. This is authenticated tailnet-only hosting, not a public deployment. Do **not** use `tailscale funnel`: `/api/close-vault` is an owner-console demo endpoint without production authentication. Stop sharing with:
+
+```bash
+tailscale serve --https=443 off
+```
+
 Stop only this repository's owned Compose stack when finished:
 
 ```bash
@@ -197,6 +217,7 @@ Do not share the mnemonic, seed, `.env.preprod`, wallet database, or raw private
 | Live schema model returned HTTP `502` | Upstream provider failure/rate limiting | Adapter fails closed; deterministic proposal path remains the recording baseline |
 | Observer UI looked isolated but response contained owner data | UI selected public fields from a combined private response | `/api/observer` now builds a separate public-only projection and is leak-tested |
 | Recovery existed only in CLI | Contract/client milestone had no judge-visible control | Real owner-console demo endpoint/button now appears only after the success plus 4/4 rejection flow |
+| Tailscale URL returned Vite `403 Blocked request` | Vite rejects proxy hostnames unless they are explicitly allow-listed | Start with `MANDATE_ALLOWED_HOSTS="$MANDATE_TAILNET_HOST"`; no wildcard or public host is enabled by default |
 
 The longer evidence narrative is in [docs/REPRODUCE.md](https://github.com/lgoyal6/midnight-mandate/blob/main/docs/REPRODUCE.md).
 

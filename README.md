@@ -24,6 +24,7 @@ This prototype provides **private mandate enforcement with public unshielded set
 | Simulator | 17/17 policy, custody, cumulative-budget, recovery, replay, rejection, and public-projection tests pass |
 | Proposal boundary | 12/12 strict schema, alias, amount, hash, and client-binding tests pass |
 | Local settlement | Vault `50 → 45`; vendor balance `+5` in a real proved transaction |
+| Receipt integrity | The indexed `payment_receipts[nullifier]` value exactly equals the successful proposal's request hash |
 | Recovery | A distinct owner-secret proof recovered the remaining `45`; vault `45 → 0` and permanently closed |
 | Attacks | Over-cap, cumulative-budget, wrong-recipient, replay, and post-close payment reject with unchanged balances/state |
 | Reproducibility | `yarn demo:smoke` compiles, tests, deploys, funds, pays, attacks, and recovers in one command |
@@ -132,11 +133,24 @@ Open [http://127.0.0.1:5173](http://127.0.0.1:5173), then:
 1. Select **Initialize real vault** and wait for deploy/fund confirmation.
 2. Create the default deterministic typed proposal.
 3. Select **Prove & pay** and confirm vault `50 → 45` and vendor `+5`.
-4. Run all four attack buttons; each must say `Rejected · zero balance movement`. The aggregate attack requests 8 after spending 5: it is under the 10-per-payment cap but exceeds the hidden total of 12.
-5. Optionally select **Recover 45 & close**. The owner-secret proof returns the remaining balance, sets the vault to zero, and disables every action that could move funds.
-6. Open [http://127.0.0.1:5173/observer](http://127.0.0.1:5173/observer) to inspect the isolated public-only lifecycle projection.
+4. Confirm the green **On-ledger receipt · Exact request verified** card. It queries the public receipt map and fails if its value differs from the proposal hash.
+5. Run all four attack buttons; each must say `Rejected · zero balance movement`. The aggregate attack requests 8 after spending 5: it is under the 10-per-payment cap but exceeds the hidden total of 12.
+6. Optionally select **Recover 45 & close**. The owner-secret proof returns the remaining balance, sets the vault to zero, and disables every action that could move funds.
+7. Open [http://127.0.0.1:5173/observer](http://127.0.0.1:5173/observer) to inspect the isolated public-only lifecycle projection and exact public receipt.
 
 The deterministic adapter is the reliable demo path. **Live AI · $0.01** uses a schema-guided model through the authenticated Zero runner and fails closed if that provider is unavailable; it never changes the Compact authority boundary.
+
+### Private teammate hosting
+
+The demo API includes owner controls and is not a production-authenticated public service. Do not expose it with a public tunnel. For teammates already authorized on the same Tailscale tailnet, run:
+
+```bash
+export MANDATE_TAILNET_HOST="$(tailscale status --json | jq -r '.Self.DNSName | rtrimstr(".")')"
+MANDATE_ALLOWED_HOSTS="$MANDATE_TAILNET_HOST" yarn demo:ui
+tailscale serve --bg --yes http://127.0.0.1:5173
+```
+
+Open `https://$MANDATE_TAILNET_HOST/`. The Node API, Midnight node, indexer, proof server, and private witnesses remain on the host machine; Tailscale Serve provides authenticated tailnet-only HTTPS. Stop sharing with `tailscale serve --https=443 off`.
 
 ## Commands
 
@@ -185,6 +199,7 @@ These comparisons describe the inspected public repositories, not claims about t
 - [`SUBMISSION.md`](SUBMISSION.md) — prepared Devpost copy, exact two-minute script, recording runbook, and public-release gate.
 - [`NEXT_STEPS.md`](NEXT_STEPS.md) — teammate onboarding, verified status, parallel work lanes, and integration rules.
 - [`UPSTREAM.md`](UPSTREAM.md) — vendor lineage and event-window originality.
+- [`docs/OPEN_SOURCE_PASS.md`](docs/OPEN_SOURCE_PASS.md) — final current-repository comparison and the evidence-based decision to add receipt verification, not scope.
 - [`evidence/`](evidence/) — sanitized, checked-in local receipts.
 
 All implementation commits in this repository were created during the event window. No pre-event project code was imported.

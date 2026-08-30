@@ -1,18 +1,21 @@
 {
   "network": "undeployed",
-  "contractAddress": "f2e55a2291f87002c2f8f03f8c9be2b17dfe603eaf78eab402cece63b1ec7edf",
-  "deploymentTxId": "00d30ad8d0a94b0c1263ba629a3820260cd7884c12a1691619acac1bc4e1a1e425",
-  "depositTxId": "0070b78e68cfc70999b8be99e1c4165756fc2aaa20dec00f947507f062383d145e",
-  "paymentTxId": "00e74c64654486fe0a53f850b64210b0f3015230b9e273c76d2543d71b02091e65",
+  "contractAddress": "acf8d9d7c25e5ce63182f508153756a88597c47cc49eca6d1a412502cba01593",
+  "deploymentTxId": "00416eb0cd2ad24c4434916ccd8614dabb530f04fe2b6e081c062b5b6ef227e3a3",
+  "depositTxId": "00aba807191f65bc892da9a9087c0b5cdcb57ebab76c6423810be4a53ac56e624a",
+  "paymentTxId": "00e08b49bd21a0b0792496f537335439cd7e882f99aed56faf952286c49c7f6bab",
+  "paymentNullifier": "26e96140c73f1393eb71d0db5808ba33edfc9e8df54dcf4fc69c6ef2e644b586",
+  "requestCommitment": "554bdf1f0acd23478446d1042b64975041f39853eeb2f12d5aa56dad22c325eb",
+  "receiptVerifiedOnLedger": true,
   "color": "0000000000000000000000000000000000000000000000000000000000000000",
   "vaultBeforePayment": "50",
   "vaultAfterPayment": "45",
-  "vendorBeforePayment": "250000000000045",
-  "vendorAfterPayment": "250000000000050",
+  "vendorBeforePayment": "250000000000090",
+  "vendorAfterPayment": "250000000000095",
   "cumulativeSpendAfterPayment": "5",
-  "closeTxId": "006b802b0a43e9f5ef11426fa296296def445926189b9748398db59ddf5af96ee6",
-  "ownerBeforeRecovery": "249999999999400",
-  "ownerAfterRecovery": "249999999999445",
+  "closeTxId": "00bc0320c0bbb3be55b95dba95befbf4f750236dc846ee4e7b368a2f78654e0edc",
+  "ownerBeforeRecovery": "249999999999265",
+  "ownerAfterRecovery": "249999999999310",
   "vaultAfterClose": "0",
   "activeAfterClose": false,
   "rejected": [
@@ -22,5 +25,5 @@
     "replay",
     "closed-vault"
   ],
-  "recordedAt": "2026-08-30T05:02:20.980Z"
+  "recordedAt": "2026-08-30T10:12:21.198Z"
 }
