@@ -1,26 +1,168 @@
 # Midnight Mandate
 
-Private spending rules. Atomic agent payments.
+**Private spending rules. Atomic agent payments.**
 
-Midnight Mandate is a contract-custodied NIGHT vault. An AI agent may propose a payment, but the contract sends funds only when the same Compact circuit proves that the exact amount and recipient satisfy a privately committed mandate.
+Midnight Mandate is a contract-custodied NIGHT vault for delegated AI-agent payments. An agent may propose a payment, but the vault releases funds only when the same Compact circuit proves that the exact amount and recipient satisfy a privately committed mandate.
 
-Status: active event-window build. Do not treat unverified roadmap claims as implemented behavior.
+![Midnight Mandate owner, agent, and public observer demo](artifacts/ui-full.png)
 
-## Current verification targets
+## The 30-second version
 
-1. Compile the Compact contract.
-2. Pass policy, custody, replay, and rejection simulator tests.
-3. Move real local test NIGHT through a proved `agent_pay` transaction.
-4. Reproduce the full story with `yarn demo:smoke`.
+A normal server can hide a spending policy but can secretly bypass it. A transparent smart contract can enforce a policy but publishes it. Midnight Mandate keeps the cap and preconfigured recipient off the public ledger while proving that each withdrawal follows them.
 
-## Development
+The contract—not the agent—holds the funds. `agent_pay` opens the private policy through witnesses, checks the amount and recipient, consumes a replay nullifier, debits the vault, and calls `sendUnshielded` in one transaction. If any check fails, no payment or contract-state mutation occurs.
+
+This prototype provides **private mandate enforcement with public unshielded settlement**. It does not claim private payment amounts or recipients.
+
+## Verified status
+
+| Evidence | Result |
+| --- | --- |
+| Compact | Compiler `0.31.1`, language `0.23`; two impure circuits compile |
+| Simulator | 10/10 policy, custody, replay, rejection, and public-projection tests pass |
+| Proposal boundary | 12/12 strict schema, alias, amount, hash, and client-binding tests pass |
+| Local settlement | Vault `50 → 45`; vendor balance `+5` in a real proved transaction |
+| Attacks | Over-cap, wrong-recipient, and replay reject with unchanged balances/state |
+| Reproducibility | `yarn demo:smoke` compiles, tests, deploys, funds, pays, and attacks in one command |
+| UI | Real API flow and browser rendering verified; no Vite overlay or console errors |
+| Public projection | Isolated `/observer` API/DOM contains no cap, preset address, policy secret, or instruction |
+| Preprod | Runner and network reachability verified; transaction remains gated by a team-owned funded test wallet |
+
+Latest checked-in local evidence is in [`evidence/local-smoke.json`](evidence/local-smoke.json). Preprod is not claimed until [`docs/PREPROD.md`](docs/PREPROD.md) records a successful public transaction.
+
+## Architecture
+
+```text
+Owner private state              Agent proposal                 Public ledger
+secret, cap, recipient           amount, alias, purpose         policy commitment
+        │                                │                       nullifiers/receipts
+        └──── witness opening ───────────┴──────┐                payment counter
+                                                ▼
+                              Compact agent_pay circuit
+                         commitment + recipient + cap + replay
+                                                │
+                                      same checked values
+                                                ▼
+                                  sendUnshielded recipient
+```
+
+The AI/model is deliberately outside the trust boundary. It can extract only `amount`, an allow-listed recipient alias, and `purpose`. Deterministic code selects the actual address, network, contract, token color, nonce, and request hash. The Compact contract remains the final authority.
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/PRIVACY.md`](docs/PRIVACY.md), and [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
+
+## Public versus private
+
+| Value | Owner/agent runtime | Public ledger/observer |
+| --- | --- | --- |
+| Policy secret | Yes | No |
+| Maximum per payment | Yes | No |
+| Preconfigured recipient before execution | Yes | No |
+| Policy commitment | Derived locally | Yes |
+| Successful amount and recipient | Yes | Yes—settlement is unshielded |
+| Natural-language instruction | Yes | No; only its request hash is recorded |
+| Replay nullifier and receipt | Derived locally | Yes |
+| Number of successful payments | Yes | Yes |
+
+The delegated runtime supplies witnesses and therefore knows the mandate. The privacy claim concerns the public ledger and outside observers, not secrecy from the machine performing the proof.
+
+## Quick start
+
+Prerequisites:
+
+- Node.js `22` or newer; verified with Node `24.19.0` and `26.8.1`.
+- Yarn `1.22.22` through Corepack.
+- Docker with a running daemon.
+- Compact launcher `0.5.2` with compiler `0.31.1` selected.
+
+Install and verify Compact using the [official Midnight installation guide](https://docs.midnight.network/getting-started/installation) and [support matrix](https://docs.midnight.network/relnotes/support-matrix):
 
 ```bash
+curl --proto '=https' --tlsv1.2 -LsSf \
+  https://github.com/midnightntwrk/compact/releases/latest/download/compact-installer.sh \
+  | sh
+export PATH="$PATH:$HOME/.local/bin"
+compact update 0.31.1
+compact --version
+compact compile --version
+```
+
+Then:
+
+```bash
+corepack enable
+corepack prepare yarn@1.22.22 --activate
 yarn install --frozen-lockfile
-yarn compile
-yarn test:contract
 yarn demo:smoke
 ```
 
-See [UPSTREAM.md](UPSTREAM.md) for attribution and event-window provenance.
+A valid run ends with:
 
+```text
+MIDNIGHT_MANDATE_SMOKE_PASS
+vault_delta=-5
+vendor_delta=+5
+rejected=over-cap,wrong-recipient,replay
+```
+
+The smoke command exits nonzero if compilation/tests fail, the real payment does not move exact balances, or any attack unexpectedly succeeds.
+
+## Run the visual demo
+
+```bash
+yarn demo:ui
+```
+
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173), then:
+
+1. Select **Initialize real vault** and wait for deploy/fund confirmation.
+2. Create the default deterministic typed proposal.
+3. Select **Prove & pay** and confirm vault `50 → 45` and vendor `+5`.
+4. Run all three attack buttons; each must say `Rejected · zero balance movement`.
+5. Open [http://127.0.0.1:5173/observer](http://127.0.0.1:5173/observer) to inspect the isolated public-only projection.
+
+The deterministic adapter is the reliable demo path. **Live AI · $0.01** uses a schema-guided model through the authenticated Zero runner and fails closed if that provider is unavailable; it never changes the Compact authority boundary.
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `yarn compile` | Compile `contracts/mandate.compact` and generated proof artifacts |
+| `yarn test:contract` | Run the Compact simulator/adversarial suite |
+| `yarn test:proposal` | Run strict proposal and model-authority tests |
+| `yarn verify` | Run compile, unit tests, both type checks, web build, and secret scan |
+| `yarn demo:smoke` | Reproduce the complete real local proof/payment/attack story |
+| `yarn demo:ui` | Start the real demo API and Vite interface |
+| `yarn test:preprod` | Attempt the same deploy/deposit/pay path on Preprod with a supplied test wallet |
+| `yarn env:down` | Stop this repository's Compose stack when it owns the services |
+
+## Why this is different from nearby Midnight work
+
+| Project | Existing contribution | Midnight Mandate distinction |
+| --- | --- | --- |
+| [Aegis](https://github.com/1shanpanta/aegis) | Private cap/whitelist policy proofs and reject paths | Aegis explicitly is not the vault; Mandate couples the proof to contract-held funds |
+| [MidPilot](https://github.com/ANPAN27/MidPilot) | Natural-language payment UX and wallet transfer path | Its active policy check is local; Mandate enforces policy inside the withdrawal circuit |
+| [Latch](https://github.com/CipherCollective/Latch) | Strong private one-use capability framing | Its repository discloses that real proof/receipt/transaction operations remain pending |
+| [Passport](https://github.com/midnightntwrk/passport-demo) | Official contract custody and atomic grant withdrawal pattern | Prototype grant cap/color are public and recipient unrestricted; Mandate privately commits cap and recipient |
+| [Kaelix](https://github.com/kushwahaamar-dev/Kaelix) | Private AI guard plus compliance attestation | Mandate makes the proof causal by executing the protected payment itself |
+
+These comparisons describe the inspected public repositories, not claims about their future roadmaps.
+
+## Known limitations
+
+- Successful settlement uses unshielded NIGHT, exposing amount and recipient.
+- One vault supports one immutable recipient and one maximum per-payment amount.
+- Repeated compliant requests can spend the full deposited balance; the deposit is the public total delegation bound.
+- No cumulative/day budget, expiry, policy rotation, revocation, recovery, multisig, or shielded payout yet.
+- The proving runtime can read the policy witnesses.
+- This is prototype custody for test assets only—not audited production custody.
+- Local devnet is the verified reliability baseline. Preprod is not yet claimed.
+
+## Documentation and provenance
+
+- [`docs/REPRODUCE.md`](docs/REPRODUCE.md) — exact teammate runbook and encountered errors.
+- [`docs/DEMO.md`](docs/DEMO.md) — two-minute recording path.
+- [`docs/PREPROD.md`](docs/PREPROD.md) — public-network runner and current human gate.
+- [`UPSTREAM.md`](UPSTREAM.md) — vendor lineage and event-window originality.
+- [`evidence/`](evidence/) — sanitized, checked-in local receipts.
+
+All implementation commits in this repository were created during the event window. No pre-event project code was imported.

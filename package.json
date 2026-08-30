@@ -25,7 +25,9 @@
     "web": "vite --config vite.config.ts",
     "web:build": "vite build --config vite.config.ts",
     "web:typecheck": "tsc -p web/tsconfig.json",
-    "demo:ui": "yarn env:up && concurrently --kill-others --names api,web --prefix-colors blue,green \"yarn demo:api\" \"yarn web\""
+    "demo:ui": "yarn env:up && concurrently --kill-others --names api,web --prefix-colors blue,green \"yarn demo:api\" \"yarn web\"",
+    "secret:scan": "tsx scripts/secret-scan.ts",
+    "verify": "yarn compile && yarn test:contract && yarn test:proposal && yarn typecheck && yarn web:typecheck && yarn web:build && yarn secret:scan"
   },
   "dependencies": {
     "@midnight-ntwrk/compact-runtime": "0.16.0",
@@ -45,7 +47,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "rxjs": "7.8.2",
-    "ws": "8.18.3"
+    "ws": "8.21.0"
   },
   "devDependencies": {
     "@types/node": "22.18.0",

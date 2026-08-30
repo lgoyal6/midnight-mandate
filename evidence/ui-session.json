@@ -1,0 +1,18 @@
+{
+  "network": "undeployed",
+  "contractAddress": "5ad54eb63ac90ef0767bce05291aeb682f3261ae440b114da48d37e03cbe6e71",
+  "deploymentTxId": "009b8464d3ad923a2e99fb5d4d1c86303274b2e194c3594de724e5d4e7749e4fe8",
+  "paymentTxId": "005dd5fd2a6e517c77602b9779d6679ac72134b1de854f8f793462183f8f4a7706",
+  "vaultBeforePayment": "50",
+  "vaultAfterPayment": "45",
+  "vendorDelta": "+5",
+  "paymentCountAfterAttacks": "1",
+  "usedNullifiersAfterAttacks": "1",
+  "rejectedWithoutMovement": ["over-cap", "wrong-recipient", "replay"],
+  "browserVerification": {
+    "viteOverlay": false,
+    "consoleErrors": false,
+    "interactiveAttackClick": true,
+    "isolatedObserverLeakScan": "pass"
+  }
+}
