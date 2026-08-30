@@ -30,6 +30,8 @@ This prototype provides **private mandate enforcement with public unshielded set
 
 Latest checked-in local evidence is in [`evidence/local-smoke.json`](evidence/local-smoke.json). Preprod is not claimed until [`docs/PREPROD.md`](docs/PREPROD.md) records a successful public transaction.
 
+The frozen install, full verification gate, and smoke test were also rerun successfully from a clean `--no-local` clone of commit `c27c516`.
+
 ## Architecture
 
 ```text
@@ -162,6 +164,7 @@ These comparisons describe the inspected public repositories, not claims about t
 - [`docs/REPRODUCE.md`](docs/REPRODUCE.md) — exact teammate runbook and encountered errors.
 - [`docs/DEMO.md`](docs/DEMO.md) — two-minute recording path.
 - [`docs/PREPROD.md`](docs/PREPROD.md) — public-network runner and current human gate.
+- [`SUBMISSION.md`](SUBMISSION.md) — prepared Devpost copy, exact two-minute script, recording runbook, and public-release gate.
 - [`UPSTREAM.md`](UPSTREAM.md) — vendor lineage and event-window originality.
 - [`evidence/`](evidence/) — sanitized, checked-in local receipts.
 
