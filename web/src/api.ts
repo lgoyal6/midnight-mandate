@@ -34,6 +34,7 @@ export const api = {
       body: JSON.stringify({ instruction, mode }),
     }),
   pay: () => request('/api/pay', { method: 'POST' }),
+  closeVault: () => request('/api/close-vault', { method: 'POST' }),
   attack: (kind: AttackKind) =>
     request('/api/attack', { method: 'POST', body: JSON.stringify({ kind }) }),
 };

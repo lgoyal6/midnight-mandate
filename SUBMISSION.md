@@ -28,7 +28,7 @@ When the agent requests payment, `agent_pay` opens the committed policy through 
 - Compact `0.31.1` contract with private policy/owner witnesses, public commitments, replay nullifiers, receipts, owner-authenticated close, and contract-held unshielded NIGHT.
 - Midnight.js wallet, proof-server, indexer, node, and contract providers for deployment, funding, proving, submission, and authoritative balance observation.
 - A strict TypeScript `PaymentProposalV1` boundary plus deterministic and optional schema-guided AI extraction paths.
-- A React/Vite command center with separate owner, agent, and public-observer experiences. The `/observer` route uses a separate public-only API projection.
+- A React/Vite command center with separate owner, agent, and public-observer experiences, including the real owner recovery lifecycle. The `/observer` route uses a separate public-only API projection.
 - Simulator, proposal, local integration, browser, privacy-projection, dependency-audit, secret-scan, and fresh-clone reproducibility checks.
 
 ## Why Midnight
@@ -43,6 +43,7 @@ The prototype deliberately does not claim private settlement: successful amount 
 - Proposal authority boundary: 12/12 tests passed.
 - Real local proof/payment: vault `50 → 45`, vendor `+5`.
 - Real recovery: a distinct owner-secret proof returned the remaining `45`, left vault balance `0`, and set it permanently inactive.
+- Browser recovery: the owner control stayed disabled until 4/4 rejection checks passed, then confirmed close transaction `00e768b67c3160dfba50b5c5182e85f629e5f046116fe5229789abbe053e305ac3`; the public observer showed `closed` without either secret.
 - Real negative paths: over-cap, cumulative-budget, wrong-recipient, replay, and post-close payment all rejected with unchanged balances and state.
 - Fresh public-clone reproduction: frozen install, full verification, and the complete one-command payment/recovery smoke all passed from commit `33fb4b4`; its independent Linux CI gate also passed.
 - Public-clone local transactions: payment `00899429e1988283d4b1580ed1e5135a4899a72d59bbd04ba1376e6d47f3f94648`; owner close `00b9ed3bffa711075165aa5bbc6f21402a46541270c1646864ef1f0eb2850b9cbe`.

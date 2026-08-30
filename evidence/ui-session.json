@@ -6,6 +6,9 @@
     "vaultAfterPayment": "45",
     "vendorDelta": "+5",
     "cumulativeSpendAfterPayment": "5",
+    "ownerRecovered": "+45",
+    "vaultAfterClose": "0",
+    "activeAfterClose": false,
     "rejectedWithoutMovement": [
       "over-cap",
       "cumulative-budget",
@@ -21,10 +24,18 @@
     "isolatedObserverApiPrivateKeysAbsent": true,
     "isolatedObserverDomPrivateTotalAbsent": true,
     "isolatedObserverPublicCumulativeSpendPresent": true,
+    "recoveryButtonGate": "enabled only after 4/4 rejection checks",
+    "ownerRecoveryClick": "pass",
+    "ownerRecoveryTransactionId": "00e768b67c3160dfba50b5c5182e85f629e5f046116fe5229789abbe053e305ac3",
+    "isolatedObserverPublicLifecycle": "closed",
+    "isolatedObserverOwnerSecretAbsent": true,
+    "accessibilityViolations": 0,
     "screenshots": [
       "artifacts/ui-cumulative-rejected.png",
-      "artifacts/ui-cumulative-observer.png"
+      "artifacts/ui-cumulative-observer.png",
+      "artifacts/ui-recovery-closed.png",
+      "artifacts/ui-recovery-observer.png"
     ]
   },
-  "recordedAt": "2026-08-30T04:45:58.000Z"
+  "recordedAt": "2026-08-30T05:12:32.645Z"
 }

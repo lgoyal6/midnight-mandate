@@ -52,6 +52,8 @@ Show the three columns.
 
 “Next, mandates become reusable private authority for agent commerce: epoch budgets, expiry, merchant sets, sponsored execution, and selective audit.”
 
+The required take can stop here. For judge Q&A or a longer live walkthrough, run all four rejection buttons and then select **Recover 45 & close**. Show the owner recovery transaction, vault `45 → 0`, and public lifecycle `closed`; explain that the distinct owner opening is still local to one trusted prototype process.
+
 ## Recording integrity
 
 - Show the local-devnet label; do not imply Preprod unless `MIDNIGHT_MANDATE_PREPROD_PASS` exists.

@@ -103,7 +103,7 @@ function CommandCenter() {
           </p>
         </div>
         <div className={`status-orb phase-${state.phase}`}>
-          <span>{state.phase === 'cold' ? '01' : state.phase === 'ready' ? '02' : state.phase === 'proposed' ? '03' : '04'}</span>
+          <span>{state.phase === 'cold' ? '01' : state.phase === 'ready' ? '02' : state.phase === 'proposed' ? '03' : state.phase === 'paid' ? '04' : '05'}</span>
           <small>{state.phase}</small>
         </div>
       </header>
@@ -118,7 +118,13 @@ function CommandCenter() {
           onClick={() => void run('initialize', api.initialize)}
           disabled={Boolean(busy) || state.phase !== 'cold'}
         >
-          {busy === 'initialize' ? 'Deploying + funding…' : state.phase === 'cold' ? 'Initialize real vault' : 'Vault ready'}
+          {busy === 'initialize'
+            ? 'Deploying + funding…'
+            : state.phase === 'cold'
+              ? 'Initialize real vault'
+              : state.phase === 'closed'
+                ? 'Vault closed'
+                : 'Vault ready'}
         </ActionButton>
       </section>
 
@@ -136,11 +142,33 @@ function CommandCenter() {
             <div><span>Max cumulative spend</span><strong>{state.owner?.maxTotalSpend ?? '12'} NIGHT</strong></div>
             <div><span>Allowed recipient</span><strong>{state.owner?.allowedRecipientAlias ?? 'vendor only'}</strong></div>
             <div><span>Policy secret</span><strong>local only · hidden</strong></div>
+            <div><span>Recovery authority</span><strong>distinct owner secret</strong></div>
           </div>
           <div className="balance-row">
             <Metric label="Deposited" value={`${state.owner?.initialBudget ?? '—'} NIGHT`} />
             <Metric label="Vault now" value={`${state.owner?.vaultBalance ?? '—'} NIGHT`} />
             <Metric label="Private allowance left" value={`${state.owner?.remainingPrivateBudget ?? '—'} NIGHT`} />
+          </div>
+          <div className="owner-recovery">
+            <div>
+              <span>Emergency recovery</span>
+              <small>
+                {state.owner?.active === false
+                  ? `${state.owner.recoveredAmount} NIGHT returned · permanently closed`
+                  : 'Available after the four rejection checks · closes the vault permanently'}
+              </small>
+            </div>
+            <ActionButton
+              tone="danger"
+              disabled={Boolean(busy) || !allRejected || !state.owner?.active}
+              onClick={() => void run('close-vault', api.closeVault)}
+            >
+              {busy === 'close-vault'
+                ? 'Proving owner + recovering…'
+                : state.owner?.active === false
+                  ? 'Vault closed'
+                  : `Recover ${state.owner?.vaultBalance ?? '—'} & close`}
+            </ActionButton>
           </div>
         </article>
 
@@ -163,13 +191,13 @@ function CommandCenter() {
           <div className="button-row">
             <ActionButton
               tone="secondary"
-              disabled={Boolean(busy) || state.phase === 'cold'}
+              disabled={Boolean(busy) || state.phase === 'cold' || state.phase === 'closed'}
               onClick={() => void run('proposal', () => api.propose(instruction, mode))}
             >
               {busy === 'proposal' ? 'Parsing…' : 'Create typed proposal'}
             </ActionButton>
             <ActionButton
-              disabled={Boolean(busy) || !state.agent.proposal}
+              disabled={Boolean(busy) || !state.agent.proposal || state.phase === 'closed'}
               onClick={() => void run('pay', api.pay)}
             >
               {busy === 'pay' ? 'Proving + settling…' : 'Prove & pay'}
@@ -192,6 +220,8 @@ function CommandCenter() {
           <p className="panel-copy">Built from ledger/indexer fields—not an owner object with hidden CSS.</p>
           <div className="ledger-list">
             <div><span>Policy commitment</span><code>{short(state.observer?.policyCommitment, 8)}</code></div>
+            <div><span>Owner commitment</span><code>{short(state.observer?.ownerCommitment, 8)}</code></div>
+            <div><span>Vault lifecycle</span><strong className={state.observer?.active === false ? '' : 'safe'}>{state.observer?.active === false ? 'closed' : state.observer ? 'active' : '—'}</strong></div>
             <div><span>Successful payments</span><strong>{state.observer?.paymentCount ?? '—'}</strong></div>
             <div><span>Cumulative public spend</span><strong>{state.observer?.cumulativeSpend ?? '—'} NIGHT</strong></div>
             <div><span>Used nullifiers</span><strong>{state.observer?.usedNullifiers ?? '—'}</strong></div>
@@ -287,6 +317,9 @@ function ObserverPage() {
             <div><span>Network</span><strong>{state.observer?.networkId ?? '—'}</strong></div>
             <div><span>Contract</span><code>{short(state.observer?.contractAddress, 14)}</code></div>
             <div><span>Policy commitment</span><code>{short(state.observer?.policyCommitment, 14)}</code></div>
+            <div><span>Owner commitment</span><code>{short(state.observer?.ownerCommitment, 14)}</code></div>
+            <div><span>Vault lifecycle</span><strong>{state.observer?.active === false ? 'closed' : state.observer ? 'active' : '—'}</strong></div>
+            <div><span>Accepted token color</span><code>{short(state.observer?.vaultColor, 14)}</code></div>
             <div><span>Vault balance</span><strong>{state.observer?.vaultBalance ?? '—'} NIGHT</strong></div>
             <div><span>Successful payments</span><strong>{state.observer?.paymentCount ?? '—'}</strong></div>
             <div><span>Cumulative spend</span><strong>{state.observer?.cumulativeSpend ?? '—'} NIGHT</strong></div>

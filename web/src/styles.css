@@ -68,6 +68,10 @@ h2 { margin: 0; font-size: 22px; letter-spacing: -.035em; }
 .rule-card strong, .proposal-card strong, .ledger-list strong { text-align: right; font-size: 12px; }
 .proposal-card code, .ledger-list code { color: #d7ddd4; font-size: 10px; }
 .balance-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 28px; }
+.owner-recovery { display: grid; gap: 10px; margin-top: 14px; padding: 13px; border: 1px solid #4f302d; background: rgba(57,25,22,.3); }
+.owner-recovery > div { display: grid; gap: 3px; }
+.owner-recovery span { color: #ffd7d4; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.owner-recovery small { color: var(--muted); font-size: 10px; line-height: 1.45; }
 .metric { padding: 14px; background: #0c0f0d; border: 1px solid #212621; }
 .metric span { display: block; margin-bottom: 8px; color: var(--muted); font-size: 10px; }
 .metric strong { color: var(--green); font: 500 16px 'DM Mono'; }
@@ -103,6 +107,7 @@ textarea:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(185,255,
 .event > span, .event code { color: var(--muted); font: 400 10px 'DM Mono'; }
 .event p { margin: 0; font-size: 12px; }
 .event-payment p { color: var(--green); }
+.event-recovery p { color: #ffd7d4; }
 .event-rejection p { color: #ffc0bb; }
 .empty { color: var(--muted); font-size: 13px; }
 footer { display: flex; justify-content: space-between; gap: 30px; padding-top: 26px; color: var(--muted); font-size: 11px; }

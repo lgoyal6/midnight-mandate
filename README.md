@@ -27,8 +27,8 @@ This prototype provides **private mandate enforcement with public unshielded set
 | Recovery | A distinct owner-secret proof recovered the remaining `45`; vault `45 → 0` and permanently closed |
 | Attacks | Over-cap, cumulative-budget, wrong-recipient, replay, and post-close payment reject with unchanged balances/state |
 | Reproducibility | `yarn demo:smoke` compiles, tests, deploys, funds, pays, attacks, and recovers in one command |
-| UI | Real API flow and browser rendering verified; no Vite overlay or console errors |
-| Public projection | Isolated `/observer` contains no private ceilings, remaining allowance, preset address, policy secret, or instruction |
+| UI | Real deploy/pay/attack/recovery API flow browser-verified; no Vite overlay, console error, or accessibility violation |
+| Public projection | Isolated `/observer` shows public owner commitment/lifecycle but no private ceilings, remaining allowance, preset address, either secret, or instruction |
 | Preprod | Runner and network reachability verified; transaction remains gated by a team-owned funded test wallet |
 
 Latest checked-in local evidence is in [`evidence/local-smoke.json`](evidence/local-smoke.json). Preprod is not claimed until [`docs/PREPROD.md`](docs/PREPROD.md) records a successful public transaction.
@@ -131,7 +131,8 @@ Open [http://127.0.0.1:5173](http://127.0.0.1:5173), then:
 2. Create the default deterministic typed proposal.
 3. Select **Prove & pay** and confirm vault `50 → 45` and vendor `+5`.
 4. Run all four attack buttons; each must say `Rejected · zero balance movement`. The aggregate attack requests 8 after spending 5: it is under the 10-per-payment cap but exceeds the hidden total of 12.
-5. Open [http://127.0.0.1:5173/observer](http://127.0.0.1:5173/observer) to inspect the isolated public-only projection.
+5. Optionally select **Recover 45 & close**. The owner-secret proof returns the remaining balance, sets the vault to zero, and disables every action that could move funds.
+6. Open [http://127.0.0.1:5173/observer](http://127.0.0.1:5173/observer) to inspect the isolated public-only lifecycle projection.
 
 The deterministic adapter is the reliable demo path. **Live AI · $0.01** uses a schema-guided model through the authenticated Zero runner and fails closed if that provider is unavailable; it never changes the Compact authority boundary.
 

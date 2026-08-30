@@ -45,14 +45,15 @@ The first UI implementation rendered an observer subset from a combined owner/ob
 The final structure uses `/api/observer`, which returns only:
 
 - network and contract address;
-- policy commitment;
+- policy and owner commitments;
+- active/closed lifecycle and accepted public token color;
 - public vault balance;
 - successful-payment/nullifier/receipt counts;
 - cumulative successful spend;
 - vendor's public unshielded balance;
 - public deployment/payment events.
 
-A response scan rejected the keys `maxPerPayment`, `maxTotalSpend`, `remainingPrivateBudget`, `allowedRecipient`, `policySecret`, `instruction`, `proposal`, and `attacks`. Browser verification also confirmed that the observer DOM contains neither private-cap display, private remaining allowance, preset address, nor invoice text. It intentionally shows `cumulativeSpend`, which is public state derived from public settlements.
+A response scan rejected the keys `maxPerPayment`, `maxTotalSpend`, `remainingPrivateBudget`, `allowedRecipient`, `policySecret`, `ownerSecret`, `instruction`, `proposal`, and `attacks`. Browser verification also confirmed that the observer DOM contains neither private-cap display, private remaining allowance, preset address, invoice text, nor either secret. It intentionally shows `cumulativeSpend`, the owner commitment, token color, and lifecycle because these are public contract state.
 
 ## Inference limitations
 

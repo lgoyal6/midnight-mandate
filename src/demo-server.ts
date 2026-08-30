@@ -81,6 +81,10 @@ const server = createServer(async (request, response) => {
       json(response, 200, await runExclusive(() => session.pay()));
       return;
     }
+    if (method === 'POST' && pathname === '/api/close-vault') {
+      json(response, 200, await runExclusive(() => session.recoverAndClose()));
+      return;
+    }
     if (method === 'POST' && pathname === '/api/attack') {
       const body = await readJson(request);
       if (!['over-cap', 'cumulative-budget', 'wrong-recipient', 'replay'].includes(String(body.kind))) {

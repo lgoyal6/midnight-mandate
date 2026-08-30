@@ -72,6 +72,7 @@ No code change is required for this lane. Do not claim Preprod, mainnet, private
 ### 4. UI/demo reviewer
 
 - Run `yarn demo:ui` and execute the full four-attack flow.
+- After all four reject, select **Recover 45 & close** and confirm the owner view and `/observer` both show balance `0` and lifecycle `closed`.
 - Inspect `/observer` and its network payload for private fields.
 - Improve legibility or recording flow only; do not add a mock success path.
 
@@ -84,6 +85,7 @@ No code change is required for this lane. Do not claim Preprod, mainnet, private
 5. Push branches normally; do not force-push `main`.
 6. In the PR/handoff, include the exact command run and transaction/rejection evidence when relevant.
 7. Wait for the public `Verify` workflow to pass before merging; it independently installs the pinned Compact launcher/compiler and reruns the full non-Docker gate on Linux.
+8. Treat `/api/close-vault` as a local owner-console demo endpoint, not production authentication. Do not expose this server to an untrusted network.
 
 ## Current honest limitations
 

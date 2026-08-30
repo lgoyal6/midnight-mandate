@@ -63,7 +63,7 @@ This command:
 yarn demo:ui
 ```
 
-The first **Initialize real vault** click takes roughly 35–45 seconds locally because deployment/funding wait for confirmed blocks. Payment takes roughly 20 seconds. Rejection cases fail during proof/circuit construction and usually return quickly. The cumulative case submits 8 after a successful 5 under the hidden 10-per-payment / 12-total policy.
+The first **Initialize real vault** click takes roughly 35–45 seconds locally because deployment/funding wait for confirmed blocks. Payment and owner recovery each take roughly 20 seconds. Rejection cases fail during proof/circuit construction and usually return quickly. The cumulative case submits 8 after a successful 5 under the hidden 10-per-payment / 12-total policy. After all four rejections, **Recover 45 & close** proves the owner opening, empties the vault, and disables the remaining controls.
 
 ## Errors encountered and fixes
 
@@ -97,6 +97,10 @@ One schema extractor returned paid HTTP `502` after its upstream model rate-limi
 ### Public projection was not isolated
 
 The first observer panel selected fields from a combined owner/observer response. That was not a real privacy boundary. `/api/observer` and `/observer` now use a separate public-only projection; response and DOM leak scans passed.
+
+### Recovery existed only in the CLI
+
+The first recovery milestone was contract/client/smoke complete but not visible in the owner UI. The real demo API now exposes a gated owner-console action only after the valid payment and all four rejection checks. Browser verification confirmed the close transaction, owner recovery `+45`, vault `0`, lifecycle `closed`, disabled payment controls, and an isolated observer response with no private-key fields. This local server is not a production authentication boundary and must not be exposed to an untrusted network.
 
 ## Individual teammate steps
 

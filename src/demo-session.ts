@@ -43,6 +43,7 @@ type LedgerSnapshot = {
   cumulativeSpend: bigint;
   nullifiers: bigint;
   receipts: bigint;
+  active: boolean;
 };
 
 type ReadySession = {
@@ -65,7 +66,8 @@ function sameLedger(left: LedgerSnapshot, right: LedgerSnapshot): boolean {
     left.count === right.count &&
     left.cumulativeSpend === right.cumulativeSpend &&
     left.nullifiers === right.nullifiers &&
-    left.receipts === right.receipts
+    left.receipts === right.receipts &&
+    left.active === right.active
   );
 }
 
@@ -93,6 +95,8 @@ export class LocalDemoSession {
   private instruction = '';
   private mode: DemoMode = 'deterministic';
   private paymentTxId: string | null = null;
+  private recoveryTxId: string | null = null;
+  private recoveredAmount: bigint | null = null;
   private readonly attackStatus: Record<AttackKind, 'not-run' | 'rejected-no-movement'> = {
     'over-cap': 'not-run',
     'cumulative-budget': 'not-run',
@@ -279,6 +283,7 @@ export class LocalDemoSession {
       cumulativeSpend: ledger.cumulative_spend,
       nullifiers: ledger.used_nullifiers.size(),
       receipts: ledger.payment_receipts.size(),
+      active: ledger.active,
     };
   }
 
@@ -338,6 +343,56 @@ export class LocalDemoSession {
     return this.snapshot();
   }
 
+  async recoverAndClose(): Promise<DemoSnapshot> {
+    const ready = this.ready();
+    if (!this.paymentTxId) throw new Error('complete one valid payment before closing the vault');
+    if (!Object.values(this.attackStatus).every((status) => status === 'rejected-no-movement')) {
+      throw new Error('complete all four rejection checks before closing the demo vault');
+    }
+
+    const beforeLedger = await ready.client.inspect();
+    invariant(beforeLedger.active, 'vault must be active before owner recovery');
+    const recoveryAmount = beforeLedger.night_balances.lookup(ready.color);
+    invariant(recoveryAmount > 0n, 'vault must hold funds before owner recovery');
+    const ownerBefore = balanceFor(await walletState(ready.owner), ready.colorHex);
+    const ownerAddress = userAddressBytes((await walletState(ready.owner)).unshielded);
+
+    const transactionId = await ready.client.closeVault(
+      ready.color,
+      recoveryAmount,
+      ownerAddress,
+    );
+    const afterLedger = await ready.client.inspect();
+    const ownerAfterState = await waitForWalletBalance(
+      ready.owner,
+      ready.colorHex,
+      ownerBefore + recoveryAmount,
+    );
+    const ownerAfter = balanceFor(ownerAfterState, ready.colorHex);
+    invariant(!afterLedger.active, 'owner recovery must permanently close the vault');
+    invariant(
+      afterLedger.night_balances.lookup(ready.color) === 0n,
+      'owner recovery must empty the vault',
+    );
+    invariant(ownerAfter - ownerBefore === recoveryAmount, 'owner must receive the full balance');
+    invariant(
+      afterLedger.payment_count === beforeLedger.payment_count &&
+        afterLedger.cumulative_spend === beforeLedger.cumulative_spend &&
+        afterLedger.used_nullifiers.size() === beforeLedger.used_nullifiers.size() &&
+        afterLedger.payment_receipts.size() === beforeLedger.payment_receipts.size(),
+      'owner recovery must preserve payment evidence',
+    );
+
+    this.recoveryTxId = transactionId;
+    this.recoveredAmount = recoveryAmount;
+    this.event(
+      'recovery',
+      `Owner proof recovered ${recoveryAmount} NIGHT; vault balance is zero and permanently closed.`,
+      transactionId,
+    );
+    return this.snapshot();
+  }
+
   async snapshot(): Promise<DemoSnapshot> {
     if (!this.client) {
       return {
@@ -360,7 +415,13 @@ export class LocalDemoSession {
     const vaultBalance = ledger.night_balances.lookup(ready.color).toString();
     const vendorBalance = balanceFor(await walletState(ready.vendor), ready.colorHex).toString();
     return {
-      phase: this.paymentTxId ? 'paid' : this.proposal ? 'proposed' : 'ready',
+      phase: !ledger.active
+        ? 'closed'
+        : this.paymentTxId
+          ? 'paid'
+          : this.proposal
+            ? 'proposed'
+            : 'ready',
       owner: {
         maxPerPayment: MAX_PER_PAYMENT.toString(),
         maxTotalSpend: MAX_TOTAL_SPEND.toString(),
@@ -369,6 +430,9 @@ export class LocalDemoSession {
         allowedRecipient: ready.vendorAddressHex,
         initialBudget: INITIAL_BUDGET.toString(),
         vaultBalance,
+        active: ledger.active,
+        recoveredAmount: this.recoveredAmount?.toString() ?? null,
+        lastRecoveryTransactionId: this.recoveryTxId,
         policySecret: 'local-only-not-returned',
       },
       agent: {
@@ -381,6 +445,9 @@ export class LocalDemoSession {
         networkId: 'undeployed',
         contractAddress: String(ready.client.contractAddress),
         policyCommitment: bytesToHex(ledger.policy_commitment),
+        ownerCommitment: bytesToHex(ledger.owner_commitment),
+        active: ledger.active,
+        vaultColor: ledger.has_vault_color ? bytesToHex(ledger.vault_color) : null,
         vaultBalance,
         paymentCount: ledger.payment_count.toString(),
         cumulativeSpend: ledger.cumulative_spend.toString(),
@@ -400,7 +467,8 @@ export class LocalDemoSession {
       observer: snapshot.observer,
       vendorBalance: snapshot.vendorBalance,
       events: snapshot.events.filter(
-        (event) => event.kind === 'system' || event.kind === 'payment',
+        (event) =>
+          event.kind === 'system' || event.kind === 'payment' || event.kind === 'recovery',
       ),
     };
   }

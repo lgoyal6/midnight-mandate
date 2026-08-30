@@ -77,6 +77,12 @@
 
 **Mitigation:** the local API serializes all mutating operations; contract nullifiers remain the on-chain replay authority.
 
+### Local demo API authority
+
+**Attempt:** another process on the owner machine calls the recovery endpoint directly.
+
+**Mitigation:** the API binds to loopback, serializes operations, and allows the UI close only after its full demo sequence. This is operational protection, not authentication. The contract still requires the owner witness, but the current server process can access it; the demo API must never be exposed to an untrusted network.
+
 ### Provider/model outage
 
 **Attempt/result:** external model fails, rate-limits, or returns malformed JSON.
