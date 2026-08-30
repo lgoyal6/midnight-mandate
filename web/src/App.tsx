@@ -27,9 +27,23 @@ const EMPTY: DemoSnapshot = {
   events: [],
 };
 
+const ATTACKS = [
+  ['over-cap', 'Per-payment cap', 'Try 11 NIGHT when the hidden cap is 10.'],
+  ['cumulative-budget', 'Cumulative budget', 'Try 8 more NIGHT after spending 5.'],
+  ['wrong-recipient', 'Recipient binding', 'Replace the precommitted vendor with an attacker.'],
+  ['replay', 'Replay protection', 'Submit the already-consumed payment again.'],
+] as const;
+
+const FLOW_STEPS = ['Deploy vault', 'Create proposal', 'Prove payment', 'Test controls', 'Recover funds'];
+
 function short(value: string | null | undefined, length = 11): string {
   if (!value) return '—';
   return value.length <= length * 2 ? value : `${value.slice(0, length)}…${value.slice(-length)}`;
+}
+
+function networkLabel(value: string | null | undefined): string {
+  if (!value) return '—';
+  return value === 'undeployed' ? 'Local devnet (SDK id: undeployed)' : value;
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
@@ -46,16 +60,55 @@ function ActionButton({
   onClick,
   disabled,
   tone = 'primary',
+  busy = false,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   disabled?: boolean;
   tone?: 'primary' | 'secondary' | 'danger';
+  busy?: boolean;
 }) {
   return (
-    <button className={`button ${tone}`} onClick={onClick} disabled={disabled}>
+    <button
+      type="button"
+      className={`button ${tone}`}
+      onClick={onClick}
+      disabled={disabled}
+      aria-busy={busy}
+    >
       {children}
     </button>
+  );
+}
+
+function ProductHeader({
+  phase,
+  observerPage = false,
+}: {
+  phase: DemoSnapshot['phase'];
+  observerPage?: boolean;
+}) {
+  return (
+    <header className="app-header">
+      <a className="brand" href="/" aria-label="Midnight Mandate home">
+        <span className="brand-mark" aria-hidden="true">M</span>
+        <span>
+          <strong>Midnight Mandate</strong>
+          <small>Private agent payment controls</small>
+        </span>
+      </a>
+      <div className="header-actions">
+        <span className="network-status"><i aria-hidden="true" /> Local devnet · {phase}</span>
+        <a
+          className="text-link"
+          href={observerPage ? '/' : '/observer'}
+          target={observerPage ? undefined : '_blank'}
+          rel={observerPage ? undefined : 'noreferrer'}
+        >
+          {observerPage ? 'Demo console' : 'Public observer'} <span aria-hidden="true">{observerPage ? '←' : '↗'}</span>
+        </a>
+      </div>
+    </header>
   );
 }
 
@@ -67,13 +120,81 @@ function CommandCenter() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.state().then(setState).catch(() => undefined);
+    let active = true;
+    api.state()
+      .then((next) => {
+        if (active) setState(next);
+      })
+      .catch((reason) => {
+        if (active) setError(reason instanceof Error ? reason.message : String(reason));
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const allRejected = useMemo(
     () => Object.values(state.attacks).every((value) => value === 'rejected-no-movement'),
     [state.attacks],
   );
+
+  const flowIndex = state.phase === 'cold'
+    ? 0
+    : state.phase === 'ready'
+      ? 1
+      : state.phase === 'proposed'
+        ? 2
+        : state.phase === 'paid'
+          ? allRejected ? 4 : 3
+          : 5;
+
+  const nextAction = state.phase === 'cold'
+    ? {
+        eyebrow: 'Start here',
+        title: 'Initialize the private mandate',
+        description: 'Deploy the Compact contract and fund its local devnet vault with test NIGHT.',
+      }
+    : state.phase === 'ready'
+      ? {
+          eyebrow: 'Next action',
+          title: 'Describe the payment',
+          description: 'Create the typed request the untrusted agent will ask the contract to approve.',
+        }
+      : state.phase === 'proposed'
+        ? {
+            eyebrow: 'Next action',
+            title: 'Prove and settle atomically',
+            description: 'The contract will verify the private mandate before it releases any funds.',
+          }
+        : state.phase === 'paid' && !allRejected
+          ? {
+              eyebrow: 'Now pressure-test it',
+              title: 'Run the four rejection checks',
+              description: 'Each attack uses the real contract path and must leave balances unchanged.',
+            }
+          : state.phase === 'paid'
+            ? {
+                eyebrow: 'Final control',
+                title: 'Recover the remaining funds',
+                description: 'Prove owner authority, return the vault balance, and close it permanently.',
+              }
+            : {
+                eyebrow: 'Demo complete',
+                title: 'Funds recovered. Vault closed.',
+                description: 'The payment succeeded, four invalid requests failed, and the owner exited safely.',
+              };
+
+  const busyMessage = busy === 'initialize'
+    ? 'Deploying and funding the contract. The local Midnight stack may take a little while; keep this tab open.'
+    : busy === 'proposal'
+      ? 'Turning the instruction into a typed payment proposal.'
+      : busy === 'pay'
+        ? 'Generating the zero-knowledge proof, submitting the transaction, and waiting for indexed settlement.'
+        : busy === 'close-vault'
+          ? 'Proving owner authority, recovering the remaining balance, and closing the vault.'
+          : busy
+            ? 'Submitting the attack through the real contract path and checking that balances do not move.'
+            : `${nextAction.eyebrow}: ${nextAction.title}`;
 
   async function run(label: string, operation: () => Promise<DemoSnapshot>) {
     setBusy(label);
@@ -92,210 +213,319 @@ function CommandCenter() {
   }
 
   return (
-    <main>
-      <header className="hero">
-        <div>
-          <div className="eyebrow"><span className="pulse" /> Midnight local devnet · live proof path</div>
-          <h1>Private rules.<br /><em>Atomic</em> agent payments.</h1>
-          <p>
-            The agent proposes. Midnight proves hidden per-payment, cumulative, and recipient
-            rules. The same contract call releases funds—or rejects without moving anything.
-          </p>
-        </div>
-        <div className={`status-orb phase-${state.phase}`}>
-          <span>{state.phase === 'cold' ? '01' : state.phase === 'ready' ? '02' : state.phase === 'proposed' ? '03' : state.phase === 'paid' ? '04' : '05'}</span>
-          <small>{state.phase}</small>
-        </div>
-      </header>
+    <>
+      <a className="skip-link" href="#workspace">Skip to demo controls</a>
+      <main id="main-content">
+        <ProductHeader phase={state.phase} />
 
-      <section className="control-bar">
-        <div>
-          <span className="control-label">Demo session</span>
-          <strong>{state.observer ? short(state.observer.contractAddress) : 'Not deployed'}</strong>
-          <a className="observer-link" href="/observer">Isolated public observer ↗</a>
-        </div>
-        <ActionButton
-          onClick={() => void run('initialize', api.initialize)}
-          disabled={Boolean(busy) || state.phase !== 'cold'}
-        >
-          {busy === 'initialize'
-            ? 'Deploying + funding…'
-            : state.phase === 'cold'
-              ? 'Initialize real vault'
-              : state.phase === 'closed'
-                ? 'Vault closed'
-                : 'Vault ready'}
-        </ActionButton>
-      </section>
-
-      {error && <div className="error-banner"><strong>Fail closed</strong><span>{error}</span></div>}
-
-      <section className="three-column">
-        <article className="panel owner-panel">
-          <div className="panel-head">
-            <div><span className="step">01</span><h2>Owner mandate</h2></div>
-            <span className="privacy private">Private</span>
-          </div>
-          <p className="panel-copy">The policy opening stays in local private state. It never appears in the observer payload.</p>
-          <div className="rule-card">
-            <div><span>Max per payment</span><strong>{state.owner?.maxPerPayment ?? '10'} NIGHT</strong></div>
-            <div><span>Max cumulative spend</span><strong>{state.owner?.maxTotalSpend ?? '12'} NIGHT</strong></div>
-            <div><span>Allowed recipient</span><strong>{state.owner?.allowedRecipientAlias ?? 'vendor only'}</strong></div>
-            <div><span>Policy secret</span><strong>local only · hidden</strong></div>
-            <div><span>Recovery authority</span><strong>distinct owner secret</strong></div>
-          </div>
-          <div className="balance-row">
-            <Metric label="Deposited" value={`${state.owner?.initialBudget ?? '—'} NIGHT`} />
-            <Metric label="Vault now" value={`${state.owner?.vaultBalance ?? '—'} NIGHT`} />
-            <Metric label="Private allowance left" value={`${state.owner?.remainingPrivateBudget ?? '—'} NIGHT`} />
-          </div>
-          <div className="owner-recovery">
-            <div>
-              <span>Emergency recovery</span>
-              <small>
-                {state.owner?.active === false
-                  ? `${state.owner.recoveredAmount} NIGHT returned · permanently closed`
-                  : 'Available after the four rejection checks · closes the vault permanently'}
-              </small>
+        <section className="intro" aria-labelledby="product-title">
+          <div className="intro-copy">
+            <span className="eyebrow">Proof-backed controls for autonomous spending</span>
+            <h1 id="product-title">Private spending rules that control the payment.</h1>
+            <p>
+              An agent proposes a payment. Midnight verifies the hidden limits and recipient,
+              then releases—or refuses—the funds in the same contract call.
+            </p>
+            <div className="trust-row" aria-label="Core properties">
+              <span>Policy opening stays private</span>
+              <span>Receipt is public</span>
+              <span>Settlement is atomic</span>
             </div>
-            <ActionButton
-              tone="danger"
-              disabled={Boolean(busy) || !allRejected || !state.owner?.active}
-              onClick={() => void run('close-vault', api.closeVault)}
-            >
-              {busy === 'close-vault'
-                ? 'Proving owner + recovering…'
-                : state.owner?.active === false
+          </div>
+
+          <aside className="next-action" aria-labelledby="next-action-title">
+            <span className="eyebrow">{nextAction.eyebrow}</span>
+            <h2 id="next-action-title">{nextAction.title}</h2>
+            <p>{nextAction.description}</p>
+            <ol className="flow-progress" aria-label="Demo progress">
+              {FLOW_STEPS.map((step, index) => (
+                <li
+                  key={step}
+                  className={flowIndex > index ? 'complete' : flowIndex === index ? 'current' : ''}
+                  aria-current={flowIndex === index ? 'step' : undefined}
+                >
+                  <span aria-hidden="true">{flowIndex > index ? '✓' : index + 1}</span>
+                  <small>{step}</small>
+                </li>
+              ))}
+            </ol>
+          </aside>
+        </section>
+
+        <section className="session-bar" aria-label="Demo session">
+          <div>
+            <span className="session-label">Contract</span>
+            <code>{state.observer ? short(state.observer.contractAddress, 13) : 'Not deployed'}</code>
+          </div>
+          <ActionButton
+            onClick={() => void run('initialize', api.initialize)}
+            disabled={Boolean(busy) || state.phase !== 'cold'}
+            busy={busy === 'initialize'}
+          >
+            {busy === 'initialize'
+              ? 'Deploying and funding…'
+              : state.phase === 'cold'
+                ? 'Initialize real vault'
+                : state.phase === 'closed'
                   ? 'Vault closed'
-                  : `Recover ${state.owner?.vaultBalance ?? '—'} & close`}
-            </ActionButton>
-          </div>
-        </article>
+                  : 'Vault initialized'}
+          </ActionButton>
+        </section>
 
-        <article className="panel agent-panel">
-          <div className="panel-head">
-            <div><span className="step">02</span><h2>Agent proposal</h2></div>
-            <span className="privacy bounded">Untrusted</span>
-          </div>
-          <label className="input-label" htmlFor="instruction">Natural-language request</label>
-          <textarea
-            id="instruction"
-            value={instruction}
-            onChange={(event) => setInstruction(event.target.value)}
-            disabled={Boolean(busy)}
-          />
-          <div className="mode-row">
-            <button className={mode === 'deterministic' ? 'mode active' : 'mode'} onClick={() => setMode('deterministic')}>Deterministic</button>
-            <button className={mode === 'live-ai' ? 'mode active' : 'mode'} onClick={() => setMode('live-ai')}>Live AI · $0.01</button>
-          </div>
-          <div className="button-row">
-            <ActionButton
-              tone="secondary"
-              disabled={Boolean(busy) || state.phase === 'cold' || state.phase === 'closed'}
-              onClick={() => void run('proposal', () => api.propose(instruction, mode))}
-            >
-              {busy === 'proposal' ? 'Parsing…' : 'Create typed proposal'}
-            </ActionButton>
-            <ActionButton
-              disabled={Boolean(busy) || !state.agent.proposal || state.phase === 'closed'}
-              onClick={() => void run('pay', api.pay)}
-            >
-              {busy === 'pay' ? 'Proving + settling…' : 'Prove & pay'}
-            </ActionButton>
-          </div>
-          {state.agent.proposal && (
-            <div className="proposal-card">
-              <div><span>Amount</span><strong>{state.agent.proposal.amount} NIGHT</strong></div>
-              <div><span>Recipient</span><code>{short(state.agent.proposal.recipient, 7)}</code></div>
-              <div><span>Request hash</span><code>{short(state.agent.proposal.requestHash, 7)}</code></div>
+        <div className="operation-status" role="status" aria-live="polite" aria-atomic="true">
+          <span className={busy ? 'status-spinner' : 'status-dot'} aria-hidden="true" />
+          {busyMessage}
+        </div>
+
+        {error && (
+          <div className="error-banner" role="alert">
+            <div>
+              <strong>Action did not complete</strong>
+              <span>{error}</span>
+              <small>No success state was recorded. Review the message before trying again.</small>
             </div>
-          )}
-          {state.observer?.latestReceipt && (
-            <div className="receipt-card" aria-live="polite">
-              <div>
-                <span>On-ledger receipt</span>
-                <strong>Exact request verified</strong>
+            <button type="button" onClick={() => setError(null)} aria-label="Dismiss error">Dismiss</button>
+          </div>
+        )}
+
+        <section id="workspace" className="workspace" aria-busy={Boolean(busy)}>
+          <div className="workspace-main">
+            <article className="card mandate-card">
+              <div className="card-heading">
+                <div>
+                  <span className="section-number">01</span>
+                  <h2>Owner mandate</h2>
+                </div>
+                <span className="visibility-label private">Private opening</span>
               </div>
-              <p>
-                Receipt <code>{short(state.observer.latestReceipt.requestCommitment, 7)}</code>
-                {' '}matches the proposed request hash; nullifier{' '}
-                <code>{short(state.observer.latestReceipt.nullifier, 7)}</code> is consumed.
+              <p className="card-copy">
+                Only a commitment reaches the ledger. The caps, recipient opening, policy secret,
+                and recovery secret remain in local private state.
               </p>
-            </div>
-          )}
-        </article>
+              <div className="policy-status">
+                <span>{state.owner ? 'Active mandate' : 'Deployment preview'}</span>
+                <small>{state.owner ? 'Committed and funded on local devnet' : 'These values are committed when you initialize'}</small>
+              </div>
+              <div className="rule-grid">
+                <Metric label="Per payment" value={`${state.owner?.maxPerPayment ?? '10'} NIGHT`} />
+                <Metric label="Total spend" value={`${state.owner?.maxTotalSpend ?? '12'} NIGHT`} />
+                <Metric label="Recipient" value={state.owner?.allowedRecipientAlias ?? 'vendor only'} />
+              </div>
+              <div className="balance-strip">
+                <div><span>Deposited</span><strong>{state.owner?.initialBudget ?? '—'} NIGHT</strong></div>
+                <div><span>Vault now</span><strong>{state.owner?.vaultBalance ?? '—'} NIGHT</strong></div>
+                <div><span>Private allowance left</span><strong>{state.owner?.remainingPrivateBudget ?? '—'} NIGHT</strong></div>
+              </div>
+            </article>
 
-        <article className="panel observer-panel">
-          <div className="panel-head">
-            <div><span className="step">03</span><h2>Public observer</h2></div>
-            <span className="privacy public">Public</span>
+            <article className="card request-card">
+              <div className="card-heading">
+                <div>
+                  <span className="section-number">02</span>
+                  <h2>Agent request</h2>
+                </div>
+                <span className="visibility-label untrusted">Untrusted input</span>
+              </div>
+              <p className="card-copy">
+                Natural language is converted into a typed proposal. The adapter may suggest;
+                only the contract can authorize the transfer.
+              </p>
+              <label className="input-label" htmlFor="instruction">Payment instruction</label>
+              <textarea
+                id="instruction"
+                value={instruction}
+                onChange={(event) => setInstruction(event.target.value)}
+                disabled={Boolean(busy)}
+                aria-describedby="adapter-help"
+              />
+              <div className="adapter-controls">
+                <div className="mode-group" role="group" aria-label="Proposal adapter">
+                  <button
+                    type="button"
+                    className={mode === 'deterministic' ? 'mode active' : 'mode'}
+                    onClick={() => setMode('deterministic')}
+                    aria-pressed={mode === 'deterministic'}
+                    disabled={Boolean(busy)}
+                  >
+                    Deterministic
+                  </button>
+                  <button
+                    type="button"
+                    className={mode === 'live-ai' ? 'mode active' : 'mode'}
+                    onClick={() => setMode('live-ai')}
+                    aria-pressed={mode === 'live-ai'}
+                    disabled={Boolean(busy)}
+                  >
+                    Live AI · $0.01
+                  </button>
+                </div>
+                <small id="adapter-help">
+                  {mode === 'deterministic'
+                    ? 'Reliable demo path; no model call required.'
+                    : 'Optional paid adapter; contract enforcement is unchanged.'}
+                </small>
+              </div>
+              <div className="button-row">
+                <ActionButton
+                  tone="secondary"
+                  disabled={Boolean(busy) || state.phase === 'cold' || state.phase === 'closed'}
+                  busy={busy === 'proposal'}
+                  onClick={() => void run('proposal', () => api.propose(instruction, mode))}
+                >
+                  {busy === 'proposal' ? 'Creating proposal…' : 'Create typed proposal'}
+                </ActionButton>
+                <ActionButton
+                  disabled={Boolean(busy) || !state.agent.proposal || state.phase === 'closed'}
+                  busy={busy === 'pay'}
+                  onClick={() => void run('pay', api.pay)}
+                >
+                  {busy === 'pay' ? 'Proving and settling…' : 'Prove & release payment'}
+                </ActionButton>
+              </div>
+              {state.agent.proposal && (
+                <div className="proposal-card" aria-label="Typed payment proposal">
+                  <div><span>Amount</span><strong>{state.agent.proposal.amount} NIGHT</strong></div>
+                  <div><span>Recipient</span><code>{short(state.agent.proposal.recipient, 7)}</code></div>
+                  <div><span>Request hash</span><code>{short(state.agent.proposal.requestHash, 7)}</code></div>
+                </div>
+              )}
+            </article>
           </div>
-          <p className="panel-copy">Built from ledger/indexer fields—not an owner object with hidden CSS.</p>
-          <div className="ledger-list">
-            <div><span>Policy commitment</span><code>{short(state.observer?.policyCommitment, 8)}</code></div>
-            <div><span>Owner commitment</span><code>{short(state.observer?.ownerCommitment, 8)}</code></div>
-            <div><span>Vault lifecycle</span><strong className={state.observer?.active === false ? '' : 'safe'}>{state.observer?.active === false ? 'closed' : state.observer ? 'active' : '—'}</strong></div>
-            <div><span>Successful payments</span><strong>{state.observer?.paymentCount ?? '—'}</strong></div>
-            <div><span>Cumulative public spend</span><strong>{state.observer?.cumulativeSpend ?? '—'} NIGHT</strong></div>
-            <div><span>Used nullifiers</span><strong>{state.observer?.usedNullifiers ?? '—'}</strong></div>
-            <div><span>Latest receipt</span><strong className={state.observer?.latestReceipt ? 'safe' : ''}>{state.observer?.latestReceipt ? 'exact request verified' : '—'}</strong></div>
-            <div><span>Public vault balance</span><strong>{state.observer?.vaultBalance ?? '—'} NIGHT</strong></div>
-            <div><span>Hidden from this view</span><strong className="safe">both caps · preset recipient · secret</strong></div>
-          </div>
-        </article>
-      </section>
 
-      <section className="attack-section">
-        <div className="section-title">
-          <div><span className="eyebrow">Adversarial proof</span><h2>Try to break the mandate</h2></div>
-          <span className={allRejected ? 'verified-pill success' : 'verified-pill'}>{allRejected ? '4/4 blocked' : 'No mocked success'}</span>
-        </div>
-        <div className="attack-grid">
-          {([
-            ['over-cap', 'Spend 11 NIGHT', 'Private cap is 10'],
-            ['cumulative-budget', 'Spend 8 more NIGHT', '5 + 8 exceeds hidden total of 12'],
-            ['wrong-recipient', 'Pay attacker', 'Recipient is precommitted'],
-            ['replay', 'Replay payment', 'Nonce was already consumed'],
-          ] as const).map(([kind, title, detail]) => (
-            <button
-              key={kind}
-              className={`attack-card ${state.attacks[kind] === 'rejected-no-movement' ? 'rejected' : ''}`}
-              onClick={() => attack(kind)}
-              disabled={
-                Boolean(busy) ||
-                state.phase !== 'paid' ||
-                state.attacks[kind] === 'rejected-no-movement'
-              }
-            >
-              <span className="attack-icon">{state.attacks[kind] === 'rejected-no-movement' ? '✓' : '×'}</span>
-              <span><strong>{busy === kind ? 'Submitting real attack…' : title}</strong><small>{state.attacks[kind] === 'rejected-no-movement' ? 'Rejected · zero balance movement' : detail}</small></span>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="evidence-section">
-        <div>
-          <span className="eyebrow">Evidence stream</span>
-          <h2>What actually happened</h2>
-        </div>
-        <div className="event-list">
-          {state.events.length === 0 && <p className="empty">Initialize the vault to begin the real proof path.</p>}
-          {state.events.map((event) => (
-            <div className={`event event-${event.kind}`} key={`${event.at}-${event.message}`}>
-              <span>{new Date(event.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-              <p>{event.message}</p>
-              {event.transactionId && <code>{short(event.transactionId, 8)}</code>}
+          <aside className="card proof-card" aria-labelledby="proof-title">
+            <div className="card-heading">
+              <div>
+                <span className="section-number">03</span>
+                <h2 id="proof-title">Public proof</h2>
+              </div>
+              <span className="visibility-label public">Ledger visible</span>
             </div>
-          ))}
-        </div>
-      </section>
+            <p className="card-copy">
+              This is a dedicated indexer projection—not a private owner object hidden with CSS.
+            </p>
+            {state.observer?.latestReceipt ? (
+              <div className="receipt-card" role="status" aria-live="polite">
+                <span className="receipt-icon" aria-hidden="true">✓</span>
+                <div>
+                  <strong>Exact request verified on-ledger</strong>
+                  <p>The receipt matches this proposal hash and its nullifier is consumed.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="receipt-card pending">
+                <span className="receipt-icon" aria-hidden="true">–</span>
+                <div>
+                  <strong>No payment receipt yet</strong>
+                  <p>Initialize, propose, and pay to create a verifiable public receipt.</p>
+                </div>
+              </div>
+            )}
+            <div className="ledger-list">
+              <div><span>Policy commitment</span><code>{short(state.observer?.policyCommitment, 8)}</code></div>
+              <div><span>Owner commitment</span><code>{short(state.observer?.ownerCommitment, 8)}</code></div>
+              <div><span>Vault lifecycle</span><strong>{state.observer?.active === false ? 'closed' : state.observer ? 'active' : '—'}</strong></div>
+              <div><span>Payments / nullifiers</span><strong>{state.observer?.paymentCount ?? '—'} / {state.observer?.usedNullifiers ?? '—'}</strong></div>
+              <div><span>Public spend</span><strong>{state.observer?.cumulativeSpend ?? '—'} NIGHT</strong></div>
+              <div><span>Public vault balance</span><strong>{state.observer?.vaultBalance ?? '—'} NIGHT</strong></div>
+              <div><span>Hidden from this view</span><strong className="safe">caps · recipient · secrets</strong></div>
+            </div>
+            {state.observer?.latestReceipt && (
+              <div className="receipt-detail">
+                <span>Request commitment</span><code>{short(state.observer.latestReceipt.requestCommitment, 9)}</code>
+                <span>Consumed nullifier</span><code>{short(state.observer.latestReceipt.nullifier, 9)}</code>
+              </div>
+            )}
+            <a className="proof-link" href="/observer" target="_blank" rel="noreferrer">
+              Open isolated observer <span aria-hidden="true">↗</span>
+            </a>
+          </aside>
+        </section>
 
-      <footer>
-        <span>Midnight Mandate</span>
-        <p>Private mandate · public unshielded settlement · local test assets only</p>
-      </footer>
-    </main>
+        <section className="attack-section" aria-labelledby="attack-title">
+          <div className="section-title">
+            <div>
+              <span className="eyebrow">04 · Adversarial verification</span>
+              <h2 id="attack-title">Pressure-test the mandate</h2>
+              <p>These are real rejected transactions, not simulated UI states.</p>
+            </div>
+            <span className={allRejected ? 'verified-pill success' : 'verified-pill'}>
+              {allRejected ? '4 of 4 blocked' : state.phase === 'paid' ? 'Ready to test' : 'Unlocks after payment'}
+            </span>
+          </div>
+          <div className="attack-grid">
+            {ATTACKS.map(([kind, title, detail]) => {
+              const rejected = state.attacks[kind] === 'rejected-no-movement';
+              return (
+                <button
+                  type="button"
+                  key={kind}
+                  className={`attack-card ${rejected ? 'rejected' : ''}`}
+                  onClick={() => attack(kind)}
+                  disabled={Boolean(busy) || state.phase !== 'paid' || rejected}
+                  aria-busy={busy === kind}
+                >
+                  <span className="attack-state" aria-hidden="true">{rejected ? '✓' : 'Test'}</span>
+                  <span>
+                    <strong>{busy === kind ? 'Submitting real attack…' : title}</strong>
+                    <small>{rejected ? 'Rejected · zero balance movement' : detail}</small>
+                    <span className="sr-only">{rejected ? 'Test passed' : 'Not tested'}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className={`recovery-card ${allRejected ? 'unlocked' : ''}`} aria-labelledby="recovery-title">
+          <div>
+            <span className="eyebrow">05 · Owner escape hatch</span>
+            <h2 id="recovery-title">Recover funds and close the vault</h2>
+            <p>
+              {state.owner?.active === false
+                ? `${state.owner.recoveredAmount} NIGHT returned to the owner. The vault is permanently closed.`
+                : allRejected
+                  ? 'All rejection paths passed. Owner-only recovery is now ready for the demo.'
+                  : 'Run all four rejection checks to unlock this final demo step.'}
+            </p>
+          </div>
+          <ActionButton
+            tone="danger"
+            disabled={Boolean(busy) || !allRejected || !state.owner?.active}
+            busy={busy === 'close-vault'}
+            onClick={() => void run('close-vault', api.closeVault)}
+          >
+            {busy === 'close-vault'
+              ? 'Proving owner and recovering…'
+              : state.owner?.active === false
+                ? 'Recovery complete'
+                : `Recover ${state.owner?.vaultBalance ?? '—'} NIGHT & close`}
+          </ActionButton>
+        </section>
+
+        <section className="evidence-section" aria-labelledby="evidence-title">
+          <div>
+            <span className="eyebrow">Audit trail</span>
+            <h2 id="evidence-title">What actually happened</h2>
+            <p>Only confirmed local-devnet transitions appear here.</p>
+          </div>
+          <div className="event-list" role="log" aria-live="polite" aria-label="Confirmed transaction events">
+            {state.events.length === 0 && <p className="empty">Initialize the vault to begin the real proof path.</p>}
+            {state.events.map((event) => (
+              <div className={`event event-${event.kind}`} key={`${event.at}-${event.message}`}>
+                <time dateTime={event.at}>{new Date(event.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</time>
+                <p>{event.message}</p>
+                {event.transactionId && <code title={event.transactionId}>{short(event.transactionId, 8)}</code>}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <footer>
+          <span>Midnight Mandate</span>
+          <p>Private mandate · public unshielded settlement · local test assets only</p>
+        </footer>
+      </main>
+    </>
   );
 }
 
@@ -349,60 +579,81 @@ function ObserverPage() {
   }, []);
 
   return (
-    <main className="observer-only">
-      <header className="observer-hero">
-        <div>
-          <div className="eyebrow"><span className="pulse" /> Public-only API projection</div>
-          <h1>What the ledger<br /><em>actually reveals.</em></h1>
-          <p>This route requests only indexer-visible contract fields and public unshielded balances.</p>
-        </div>
-        <a className="observer-link back" href="/">← Owner demo console</a>
-      </header>
-      {error && <div className="error-banner"><strong>Unavailable</strong><span>{error}</span></div>}
-      <section className="observer-proof">
-        <div className="observer-ledger">
-          <div className="panel-head">
-            <div><span className="step">PUB</span><h2>Indexed contract state</h2></div>
-            <span className="privacy public">Public</span>
+    <>
+      <a className="skip-link" href="#public-state">Skip to indexed state</a>
+      <main id="main-content" className="observer-only">
+        <ProductHeader phase={state.phase} observerPage />
+        <header className="observer-hero">
+          <div>
+            <span className="eyebrow">Isolated public API projection</span>
+            <h1>See exactly what the ledger reveals.</h1>
+            <p>
+              This route requests only indexer-visible contract fields and public unshielded balances.
+              It never receives the private mandate opening or the agent instruction.
+            </p>
           </div>
-          <div className="ledger-list roomy" aria-live="polite">
-            <div><span>Network</span><strong>{state.observer?.networkId ?? '—'}</strong></div>
-            <div><span>Contract</span><code>{short(state.observer?.contractAddress, 14)}</code></div>
-            <div><span>Policy commitment</span><code>{short(state.observer?.policyCommitment, 14)}</code></div>
-            <div><span>Owner commitment</span><code>{short(state.observer?.ownerCommitment, 14)}</code></div>
-            <div><span>Vault lifecycle</span><strong>{state.observer?.active === false ? 'closed' : state.observer ? 'active' : '—'}</strong></div>
-            <div><span>Accepted token color</span><code>{short(state.observer?.vaultColor, 14)}</code></div>
-            <div><span>Vault balance</span><strong>{state.observer?.vaultBalance ?? '—'} NIGHT</strong></div>
-            <div><span>Successful payments</span><strong>{state.observer?.paymentCount ?? '—'}</strong></div>
-            <div><span>Cumulative spend</span><strong>{state.observer?.cumulativeSpend ?? '—'} NIGHT</strong></div>
-            <div><span>Nullifiers / receipts</span><strong>{state.observer?.usedNullifiers ?? '—'} / {state.observer?.paymentReceipts ?? '—'}</strong></div>
-            <div><span>Receipt integrity</span><strong className={state.observer?.latestReceipt ? 'safe' : ''}>{state.observer?.latestReceipt ? 'exact request verified' : '—'}</strong></div>
-            <div><span>Latest request commitment</span><code>{short(state.observer?.latestReceipt?.requestCommitment, 14)}</code></div>
-            <div><span>Latest nullifier</span><code>{short(state.observer?.latestReceipt?.nullifier, 14)}</code></div>
-            <div><span>Vendor public balance</span><strong>{state.vendorBalance ?? '—'} NIGHT</strong></div>
-          </div>
-        </div>
-        <aside className="absence-card">
-          <span className="eyebrow">Absent by construction</span>
-          <h2>No private policy object reaches this route.</h2>
-          <p>The endpoint returns a dedicated public projection. Private policy values and natural-language instructions are not serialized and cannot be recovered with CSS or DevTools.</p>
-          <div className="absence-mark">∅</div>
-        </aside>
-      </section>
-      <section className="evidence-section observer-events">
-        <div><span className="eyebrow">Public evidence</span><h2>Confirmed transitions</h2></div>
-        <div className="event-list">
-          {state.events.length === 0 && <p className="empty">No deployment has been initialized yet.</p>}
-          {state.events.map((event) => (
-            <div className={`event event-${event.kind}`} key={`${event.at}-${event.message}`}>
-              <span>{new Date(event.at).toLocaleTimeString()}</span>
-              <p>{event.message}</p>
-              {event.transactionId && <code>{short(event.transactionId, 8)}</code>}
+          <a className="button secondary link-button" href="/">Return to demo console</a>
+        </header>
+        {error && <div className="error-banner" role="alert"><div><strong>Observer unavailable</strong><span>{error}</span></div></div>}
+        <section id="public-state" className="observer-proof">
+          <div className="observer-ledger">
+            <div className="card-heading">
+              <div><span className="section-number">PUB</span><h2>Indexed contract state</h2></div>
+              <span className="visibility-label public">Ledger visible</span>
             </div>
-          ))}
-        </div>
-      </section>
-    </main>
+            <div className="ledger-list roomy" aria-live="polite">
+              <div><span>Network</span><strong>{networkLabel(state.observer?.networkId)}</strong></div>
+              <div><span>Contract</span><code>{short(state.observer?.contractAddress, 14)}</code></div>
+              <div><span>Policy commitment</span><code>{short(state.observer?.policyCommitment, 14)}</code></div>
+              <div><span>Owner commitment</span><code>{short(state.observer?.ownerCommitment, 14)}</code></div>
+              <div><span>Vault lifecycle</span><strong>{state.observer?.active === false ? 'closed' : state.observer ? 'active' : '—'}</strong></div>
+              <div><span>Accepted token color</span><code>{short(state.observer?.vaultColor, 14)}</code></div>
+              <div><span>Vault balance</span><strong>{state.observer?.vaultBalance ?? '—'} NIGHT</strong></div>
+              <div><span>Successful payments</span><strong>{state.observer?.paymentCount ?? '—'}</strong></div>
+              <div><span>Cumulative spend</span><strong>{state.observer?.cumulativeSpend ?? '—'} NIGHT</strong></div>
+              <div><span>Nullifiers / receipts</span><strong>{state.observer?.usedNullifiers ?? '—'} / {state.observer?.paymentReceipts ?? '—'}</strong></div>
+              <div><span>Receipt integrity</span><strong className={state.observer?.latestReceipt ? 'safe' : ''}>{state.observer?.latestReceipt ? 'exact request verified' : '—'}</strong></div>
+              <div><span>Latest request commitment</span><code>{short(state.observer?.latestReceipt?.requestCommitment, 14)}</code></div>
+              <div><span>Latest nullifier</span><code>{short(state.observer?.latestReceipt?.nullifier, 14)}</code></div>
+              <div><span>Vendor public balance</span><strong>{state.vendorBalance ?? '—'} NIGHT</strong></div>
+            </div>
+          </div>
+          <aside className="absence-card">
+            <span className="eyebrow">Absent by construction</span>
+            <h2>No private policy object reaches this route.</h2>
+            <p>
+              Private caps, the preset recipient, policy secrets, recovery authority, and the natural-language
+              instruction are never serialized here—so CSS or DevTools cannot reveal them.
+            </p>
+            <ul>
+              <li>Commitments: public</li>
+              <li>Receipt and nullifier: public</li>
+              <li>Policy opening: private</li>
+            </ul>
+          </aside>
+        </section>
+        <section className="evidence-section observer-events" aria-labelledby="public-events-title">
+          <div>
+            <span className="eyebrow">Public audit trail</span>
+            <h2 id="public-events-title">Confirmed transitions</h2>
+          </div>
+          <div className="event-list" role="log" aria-live="polite">
+            {state.events.length === 0 && <p className="empty">No deployment has been initialized yet.</p>}
+            {state.events.map((event) => (
+              <div className={`event event-${event.kind}`} key={`${event.at}-${event.message}`}>
+                <time dateTime={event.at}>{new Date(event.at).toLocaleTimeString()}</time>
+                <p>{event.message}</p>
+                {event.transactionId && <code title={event.transactionId}>{short(event.transactionId, 8)}</code>}
+              </div>
+            ))}
+          </div>
+        </section>
+        <footer>
+          <span>Midnight Mandate</span>
+          <p>Public observer · indexed contract state only</p>
+        </footer>
+      </main>
+    </>
   );
 }
 
