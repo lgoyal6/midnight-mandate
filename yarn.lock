@@ -368,15 +368,10 @@
     "@midnight-ntwrk/midnight-js-protocol" "4.1.1"
     "@midnight-ntwrk/wallet-sdk-address-format" "^3.1.0"
 
-"@midnight-ntwrk/onchain-runtime-v3@3.0.0":
+"@midnight-ntwrk/onchain-runtime-v3@3.0.0", "@midnight-ntwrk/onchain-runtime-v3@^3.0.0":
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/@midnight-ntwrk/onchain-runtime-v3/-/onchain-runtime-v3-3.0.0.tgz#6b9ddf0dc09c8040175e5b40433bf0ff79425d72"
   integrity sha512-HbFbUOsvgpEFy1OT0Ni2LMFk4jnMQS1em+H+Mof/B3DpnNKl0Lkx5QiulKOc6pyU4KPEagOqx4fYNyVXFwgZ7g==
-
-"@midnight-ntwrk/onchain-runtime-v3@^3.0.0":
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/@midnight-ntwrk/onchain-runtime-v3/-/onchain-runtime-v3-3.1.0.tgz#9e7166a1a37b28579339a3e3176b4bf024818a73"
-  integrity sha512-TzxVsoxq9m7+gcS/sTQSgglsOmf7RcdPtonUwDpwwfsKeKJbrhZc9XlRm5TEDYPZhK6XCF0oHXRf4floohQjqw==
 
 "@midnight-ntwrk/platform-js@2.2.4", "@midnight-ntwrk/platform-js@^2.2.4":
   version "2.2.4"
