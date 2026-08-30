@@ -43,8 +43,8 @@ The prototype deliberately does not claim private settlement: successful amount 
 - Proposal authority boundary: 12/12 tests passed.
 - Real local proof/payment: vault `50 → 45`, vendor `+5`.
 - Real negative paths: over-cap, cumulative-budget, wrong-recipient, and replay all rejected with unchanged balances and state.
-- Fresh-clone reproduction: frozen install, full verification, and one-command smoke all passed from commit `c27c516`.
-- Clean-clone payment transaction: `009146edb6f8d4564e80461032096a21a5f6a004af74eb282d094079b544630e3e` on the local development network.
+- Fresh public-clone reproduction: frozen install, full verification, and one-command smoke all passed from commit `366e0a3`; its independent Linux CI gate also passed.
+- Public-clone payment transaction: `00991a4e08d7118be3290494349741f7de07dd7a6fe8fdb906cd55a4b9fe173898` on the local development network.
 - Preprod: network and runner verified, but no deployment is claimed without a team-owned funded test wallet.
 
 The public repository contains machine-readable receipts in [`evidence/`](evidence/), the contract in [`contracts/mandate.compact`](contracts/mandate.compact), the security boundary in [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md), and upstream attribution in [`UPSTREAM.md`](UPSTREAM.md).

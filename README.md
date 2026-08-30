@@ -25,12 +25,12 @@ This prototype provides **private mandate enforcement with public unshielded set
 | Attacks | Over-cap, cumulative-budget, wrong-recipient, and replay reject with unchanged balances/state |
 | Reproducibility | `yarn demo:smoke` compiles, tests, deploys, funds, pays, and attacks in one command |
 | UI | Real API flow and browser rendering verified; no Vite overlay or console errors |
-| Public projection | Isolated `/observer` API/DOM contains no cap, preset address, policy secret, or instruction |
+| Public projection | Isolated `/observer` contains no private ceilings, remaining allowance, preset address, policy secret, or instruction |
 | Preprod | Runner and network reachability verified; transaction remains gated by a team-owned funded test wallet |
 
 Latest checked-in local evidence is in [`evidence/local-smoke.json`](evidence/local-smoke.json). Preprod is not claimed until [`docs/PREPROD.md`](docs/PREPROD.md) records a successful public transaction.
 
-The frozen install, full verification gate, and smoke test were also rerun successfully from a clean `--no-local` clone of commit `c27c516`.
+The frozen install, full verification gate, and smoke test were also rerun successfully from a clean public GitHub clone of commit `366e0a3`. The independent Linux CI gate passed on the same commit.
 
 ## Architecture
 
