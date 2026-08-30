@@ -68,6 +68,7 @@ No code change is required for this lane. Do not claim Preprod, mainnet, private
 4. Run `yarn verify` before every push. Run `yarn demo:smoke` for any contract, witness, client, wallet, or provider change.
 5. Push branches normally; do not force-push `main`.
 6. In the PR/handoff, include the exact command run and transaction/rejection evidence when relevant.
+7. Wait for the public `Verify` workflow to pass before merging; it independently installs the pinned Compact launcher/compiler and reruns the full non-Docker gate on Linux.
 
 ## Current honest limitations
 
