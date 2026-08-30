@@ -20,12 +20,13 @@ This prototype provides **private mandate enforcement with public unshielded set
 
 | Evidence | Result |
 | --- | --- |
-| Compact | Compiler `0.31.1`, language `0.23`; two impure circuits compile |
-| Simulator | 11/11 policy, custody, cumulative-budget, replay, rejection, and public-projection tests pass |
+| Compact | Compiler `0.31.1`, language `0.23`; three impure circuits compile |
+| Simulator | 17/17 policy, custody, cumulative-budget, recovery, replay, rejection, and public-projection tests pass |
 | Proposal boundary | 12/12 strict schema, alias, amount, hash, and client-binding tests pass |
 | Local settlement | Vault `50 → 45`; vendor balance `+5` in a real proved transaction |
-| Attacks | Over-cap, cumulative-budget, wrong-recipient, and replay reject with unchanged balances/state |
-| Reproducibility | `yarn demo:smoke` compiles, tests, deploys, funds, pays, and attacks in one command |
+| Recovery | A distinct owner-secret proof recovered the remaining `45`; vault `45 → 0` and permanently closed |
+| Attacks | Over-cap, cumulative-budget, wrong-recipient, replay, and post-close payment reject with unchanged balances/state |
+| Reproducibility | `yarn demo:smoke` compiles, tests, deploys, funds, pays, attacks, and recovers in one command |
 | UI | Real API flow and browser rendering verified; no Vite overlay or console errors |
 | Public projection | Isolated `/observer` contains no private ceilings, remaining allowance, preset address, policy secret, or instruction |
 | Preprod | Runner and network reachability verified; transaction remains gated by a team-owned funded test wallet |
@@ -38,7 +39,8 @@ The frozen install, full verification gate, and smoke test were also rerun succe
 
 ```text
 Owner private state              Agent proposal                 Public ledger
-secret, both caps, recipient     amount, alias, purpose         policy commitment
+policy + owner secrets,          amount, alias, purpose         policy/owner commitments
+both caps, recipient                                           active flag/vault color
         │                                │                       nullifiers/receipts
         └──── witness opening ───────────┴──────┐                count/cumulative spend
                                                 ▼
@@ -59,10 +61,12 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/PRIVACY.md`](docs/PRI
 | Value | Owner/agent runtime | Public ledger/observer |
 | --- | --- | --- |
 | Policy secret | Yes | No |
+| Owner recovery secret | Yes | No |
 | Maximum per payment | Yes | No |
 | Maximum cumulative spend | Yes | No |
 | Preconfigured recipient before execution | Yes | No |
 | Policy commitment | Derived locally | Yes |
+| Owner commitment and active status | Derived/observed locally | Yes |
 | Successful amount and recipient | Yes | Yes—settlement is unshielded |
 | Natural-language instruction | Yes | No; only its request hash is recorded |
 | Replay nullifier and receipt | Derived locally | Yes |
@@ -108,10 +112,12 @@ MIDNIGHT_MANDATE_SMOKE_PASS
 vault_delta=-5
 vendor_delta=+5
 cumulative_spend=5
-rejected=over-cap,cumulative-budget,wrong-recipient,replay
+owner_recovered=+45
+vault_after_close=0
+rejected=over-cap,cumulative-budget,wrong-recipient,replay,closed-vault
 ```
 
-The smoke command exits nonzero if compilation/tests fail, the real payment does not move exact balances, or any attack unexpectedly succeeds.
+The smoke command exits nonzero if compilation/tests fail, the real payment or recovery does not move exact balances, or any attack unexpectedly succeeds.
 
 ## Run the visual demo
 
@@ -137,7 +143,7 @@ The deterministic adapter is the reliable demo path. **Live AI · $0.01** uses a
 | `yarn test:contract` | Run the Compact simulator/adversarial suite |
 | `yarn test:proposal` | Run strict proposal and model-authority tests |
 | `yarn verify` | Run compile, unit tests, both type checks, web build, and secret scan |
-| `yarn demo:smoke` | Reproduce the complete real local proof/payment/attack story |
+| `yarn demo:smoke` | Reproduce the complete real local proof/payment/attack/recovery story |
 | `yarn demo:ui` | Start the real demo API and Vite interface |
 | `yarn test:preprod` | Attempt the same deploy/deposit/pay path on Preprod with a supplied test wallet |
 | `yarn env:down` | Stop this repository's Compose stack when it owns the services |
@@ -158,9 +164,10 @@ These comparisons describe the inspected public repositories, not claims about t
 
 - Successful settlement uses unshielded NIGHT, exposing amount and recipient.
 - One vault supports one immutable recipient, one maximum per-payment amount, and one lifetime cumulative ceiling.
-- The cumulative ceiling has no epoch/day reset. Funds deposited above that ceiling remain locked in this prototype because owner withdrawal is not implemented.
-- No expiry, policy rotation, revocation, recovery, multisig, or shielded payout yet.
-- The proving runtime can read the policy witnesses.
+- The cumulative ceiling has no epoch/day reset. The owner can recover the whole remaining balance only by permanently closing the vault.
+- No expiry, policy rotation, owner-key rotation/guardians, multisig, or shielded payout yet.
+- The prototype stores policy and owner witnesses in one trusted local runtime. It proves distinct secrets cryptographically but does not yet isolate owner recovery authority from a compromised proving process.
+- Losing the owner secret makes recovery unavailable.
 - This is prototype custody for test assets only—not audited production custody.
 - Local devnet is the verified reliability baseline. Preprod is not yet claimed.
 

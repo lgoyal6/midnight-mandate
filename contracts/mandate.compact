@@ -7,10 +7,15 @@ witness policy_secret(): Bytes<32>;
 witness max_per_payment(): Uint<128>;
 witness max_total_spend(): Uint<128>;
 witness allowed_recipient(): Bytes<32>;
+witness owner_secret(): Bytes<32>;
 
 // Only commitments, replay nullifiers, receipts, and aggregate counters are
 // public. The cap and preconfigured recipient are never ledger fields.
 export ledger policy_commitment: Bytes<32>;
+export ledger owner_commitment: Bytes<32>;
+export ledger active: Boolean;
+export ledger has_vault_color: Boolean;
+export ledger vault_color: Bytes<32>;
 export ledger used_nullifiers: Set<Bytes<32>>;
 export ledger payment_receipts: Map<Bytes<32>, Bytes<32>>;
 export ledger payment_count: Uint<64>;
@@ -43,8 +48,21 @@ export pure circuit derive_payment_nullifier(
   ]);
 }
 
-constructor(initial_policy_commitment: Bytes<32>) {
+export pure circuit derive_owner_commitment(secret: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>([
+    pad(32, "midnight-mandate:owner:v1"),
+    secret,
+  ]);
+}
+
+constructor(
+  initial_policy_commitment: Bytes<32>,
+  initial_owner_commitment: Bytes<32>,
+) {
   policy_commitment = disclose(initial_policy_commitment);
+  owner_commitment = disclose(initial_owner_commitment);
+  active = true;
+  has_vault_color = false;
   payment_count = 0 as Uint<64>;
   cumulative_spend = 0 as Uint<128>;
 }
@@ -71,7 +89,14 @@ circuit debit_night(color: Bytes<32>, amount: Uint<128>): [] {
 export circuit deposit_night(color: Bytes<32>, amount: Uint<128>): [] {
   const c = disclose(color);
   const a = disclose(amount);
+  assert(active, "vault closed");
   assert(a > (0 as Uint<128>), "deposit amount must be positive");
+  if (has_vault_color) {
+    assert(vault_color == c, "vault accepts one token color");
+  } else {
+    vault_color = c;
+    has_vault_color = true;
+  }
   receiveUnshielded(c, a);
   credit_night(c, a);
 }
@@ -89,6 +114,7 @@ export circuit agent_pay(
   const r = disclose(recipient);
   const receipt = disclose(request_commitment);
 
+  assert(active, "vault closed");
   const secret = policy_secret();
   const cap = max_per_payment();
   const total_cap = max_total_spend();
@@ -116,6 +142,37 @@ export circuit agent_pay(
   payment_count = ((payment_count + (1 as Uint<64>)) as Uint<64>);
   cumulative_spend = ((cumulative_spend + a) as Uint<128>);
 
+  sendUnshielded(
+    c,
+    a,
+    right<ContractAddress, UserAddress>(r)
+  );
+}
+
+// Owner-only recovery. The owner secret is distinct from the delegated policy
+// secret. Closing returns the entire single-color vault balance and permanently
+// disables deposits and agent payments.
+export circuit close_vault(
+  color: Bytes<32>,
+  amount: Uint<128>,
+  recipient: UserAddress,
+): [] {
+  const c = disclose(color);
+  const a = disclose(amount);
+  const r = disclose(recipient);
+
+  assert(
+    derive_owner_commitment(owner_secret()) == owner_commitment,
+    "not vault owner"
+  );
+  assert(active, "vault closed");
+  assert(has_vault_color && vault_color == c, "wrong vault color");
+  assert(a > (0 as Uint<128>), "recovery amount must be positive");
+  assert(night_balances.member(c), "no balance for colour");
+  assert(night_balances.lookup(c) == a, "recovery must empty vault");
+
+  debit_night(c, a);
+  active = false;
   sendUnshielded(
     c,
     a,

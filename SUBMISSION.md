@@ -21,11 +21,11 @@ An owner privately configures a maximum per-payment amount, a lifetime cumulativ
 
 An AI adapter turns a natural-language instruction into a tightly constrained proposal: amount, allow-listed recipient alias, and purpose. Deterministic code—not the model—selects the actual address, network, contract, token color, nonce, and request hash.
 
-When the agent requests payment, `agent_pay` opens the committed policy through private witnesses, verifies both caps and the recipient, checks a replay nullifier and vault balance, and sends the exact checked amount to the checked recipient in the same transaction. An over-cap, cumulative-budget, wrong-recipient, replayed, malformed, or underfunded request fails without moving funds or advancing contract state.
+When the agent requests payment, `agent_pay` opens the committed policy through private witnesses, verifies both caps and the recipient, checks a replay nullifier and vault balance, and sends the exact checked amount to the checked recipient in the same transaction. An over-cap, cumulative-budget, wrong-recipient, replayed, malformed, or underfunded request fails without moving funds or advancing contract state. A separate owner-secret proof can recover the entire remaining balance and permanently close the vault.
 
 ## How we built it
 
-- Compact `0.31.1` contract with private witnesses, public policy commitment, replay nullifiers, receipts, and contract-held unshielded NIGHT.
+- Compact `0.31.1` contract with private policy/owner witnesses, public commitments, replay nullifiers, receipts, owner-authenticated close, and contract-held unshielded NIGHT.
 - Midnight.js wallet, proof-server, indexer, node, and contract providers for deployment, funding, proving, submission, and authoritative balance observation.
 - A strict TypeScript `PaymentProposalV1` boundary plus deterministic and optional schema-guided AI extraction paths.
 - A React/Vite command center with separate owner, agent, and public-observer experiences. The `/observer` route uses a separate public-only API projection.
@@ -39,10 +39,11 @@ The prototype deliberately does not claim private settlement: successful amount 
 
 ## Verified evidence
 
-- Compact simulator: 11/11 tests passed.
+- Compact simulator: 17/17 tests passed.
 - Proposal authority boundary: 12/12 tests passed.
 - Real local proof/payment: vault `50 → 45`, vendor `+5`.
-- Real negative paths: over-cap, cumulative-budget, wrong-recipient, and replay all rejected with unchanged balances and state.
+- Real recovery: a distinct owner-secret proof returned the remaining `45`, left vault balance `0`, and set it permanently inactive.
+- Real negative paths: over-cap, cumulative-budget, wrong-recipient, replay, and post-close payment all rejected with unchanged balances and state.
 - Fresh public-clone reproduction: frozen install, full verification, and one-command smoke all passed from commit `366e0a3`; its independent Linux CI gate also passed.
 - Public-clone payment transaction: `00991a4e08d7118be3290494349741f7de07dd7a6fe8fdb906cd55a4b9fe173898` on the local development network.
 - Preprod: network and runner verified, but no deployment is claimed without a team-owned funded test wallet.
@@ -57,10 +58,13 @@ Midnight's evolving package graph also exposed duplicate nominal runtime and led
 
 Finally, a combined owner/observer response was visually private but not a real data boundary. We replaced it with an isolated public endpoint and DOM-tested it for forbidden private fields.
 
+Pressure testing also exposed a custody failure: a private lifetime ceiling below the deposit could strand the excess. We added a separately committed owner secret, constrained the vault to one token color, and made recovery an exact full-balance close so no partial owner drain can masquerade as an agent payment.
+
 ## What we are proud of
 
 - A confirmed proof is tied to a real balance-moving payment, not an advisory badge.
 - Every judge-visible failure goes through the real contract path and asserts zero balance movement.
+- Owner recovery is a proved contract path, not an admin mutation, and permanently disables new deposits and payments.
 - The model cannot choose an arbitrary address, network, contract, color, nonce, or request hash.
 - The README is reproducible from a fresh clone with one smoke command.
 - Privacy claims explicitly distinguish a private mandate from public unshielded settlement.
@@ -73,7 +77,7 @@ We also learned that UI separation is not sufficient privacy evidence: the netwo
 
 ## What's next
 
-The next contract revision turns the lifetime cumulative ceiling into epoch/day budgets and adds expiry, rotation/revocation, dynamic private merchant sets, and shielded payout. The broader direction is a reusable private-mandate SDK: agents receive narrowly scoped capabilities for payments and tools without publishing a user's complete policy or receiving unrestricted wallet authority.
+The next contract revision turns the lifetime cumulative ceiling into epoch/day budgets and adds expiry, policy/owner-key rotation, recovery guardians, dynamic private merchant sets, and shielded payout. The broader direction is a reusable private-mandate SDK: agents receive narrowly scoped capabilities for payments and tools without publishing a user's complete policy or receiving unrestricted wallet authority.
 
 ## Built with
 

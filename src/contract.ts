@@ -16,3 +16,7 @@ export function policyCommitment(
 export function paymentNullifier(secret: Uint8Array, nonce: Uint8Array): Uint8Array {
   return MandateModule.pureCircuits.derive_payment_nullifier(secret, nonce);
 }
+
+export function ownerCommitment(secret: Uint8Array): Uint8Array {
+  return MandateModule.pureCircuits.derive_owner_commitment(secret);
+}

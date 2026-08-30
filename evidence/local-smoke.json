@@ -1,20 +1,26 @@
 {
   "network": "undeployed",
-  "contractAddress": "68c5918bfd49e887961474f2b38299325467799e625eba9e691704d1a77daee9",
-  "deploymentTxId": "000eeee9c318a65277c454653f0f91668dee73803305a6b93bdd7aef85313686d7",
-  "depositTxId": "00e201ce5aefeaf63651beb1d17a5146b7dc74ea42f336489bb989309c553a354d",
-  "paymentTxId": "0058aaacdcc4e6349690da3ac09f94b777df3cc0ff6639f237f54dd1a5d5d39fb3",
+  "contractAddress": "f2e55a2291f87002c2f8f03f8c9be2b17dfe603eaf78eab402cece63b1ec7edf",
+  "deploymentTxId": "00d30ad8d0a94b0c1263ba629a3820260cd7884c12a1691619acac1bc4e1a1e425",
+  "depositTxId": "0070b78e68cfc70999b8be99e1c4165756fc2aaa20dec00f947507f062383d145e",
+  "paymentTxId": "00e74c64654486fe0a53f850b64210b0f3015230b9e273c76d2543d71b02091e65",
   "color": "0000000000000000000000000000000000000000000000000000000000000000",
   "vaultBeforePayment": "50",
   "vaultAfterPayment": "45",
-  "vendorBeforePayment": "250000000000030",
-  "vendorAfterPayment": "250000000000035",
+  "vendorBeforePayment": "250000000000045",
+  "vendorAfterPayment": "250000000000050",
   "cumulativeSpendAfterPayment": "5",
+  "closeTxId": "006b802b0a43e9f5ef11426fa296296def445926189b9748398db59ddf5af96ee6",
+  "ownerBeforeRecovery": "249999999999400",
+  "ownerAfterRecovery": "249999999999445",
+  "vaultAfterClose": "0",
+  "activeAfterClose": false,
   "rejected": [
     "over-cap",
     "cumulative-budget",
     "wrong-recipient",
-    "replay"
+    "replay",
+    "closed-vault"
   ],
-  "recordedAt": "2026-08-30T04:44:32.221Z"
+  "recordedAt": "2026-08-30T05:02:20.980Z"
 }

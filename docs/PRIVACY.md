@@ -10,11 +10,11 @@ It does not provide private payments. After a successful payment, chain observer
 
 | Actor | Learns |
 | --- | --- |
-| Owner | Full policy, instruction, proposal, and transaction result |
-| Delegated proving runtime | Witness values: secret, both caps, and allowed recipient |
+| Owner | Full policy, owner-recovery secret, instruction, proposal, and transaction result |
+| Delegated proving runtime | In this prototype, witness values for both roles: policy/owner secrets, both caps, and allowed recipient |
 | Model provider | Natural-language instruction, allowed recipient aliases, and extraction schema only |
 | Midnight proof server | Proof request/private preimage; therefore it should remain local or controlled |
-| Public ledger/indexer | Commitment, nullifiers, receipts, counters, cumulative successful spend, custody balance, and successful unshielded settlement |
+| Public ledger/indexer | Policy/owner commitments, active status, accepted token color, nullifiers, receipts, counters, cumulative successful spend, custody balance, and successful unshielded settlement/recovery |
 | Isolated `/observer` route | Only the dedicated public API projection |
 
 The model never receives the policy secret, raw allowed address, wallet material, or transaction method.
@@ -24,15 +24,19 @@ The model never receives the policy secret, raw allowed address, wallet material
 | Field | Storage | Disclosure behavior |
 | --- | --- | --- |
 | `policySecret` | Local private state | Never serialized to UI/API/ledger |
+| `ownerSecret` | Local private state | Distinct recovery opening; never serialized to UI/API/ledger |
 | `maxPerPayment` | Local private state | Owner view only; constrained in proof |
 | `maxTotalSpend` | Local private state | Owner view only; constrained against public running spend in proof |
 | `cumulative_spend` | Ledger | Public running sum; reveals no more than the already-public successful amounts |
 | `allowedRecipient` | Local private state | Owner view only before payment; executed recipient later public |
 | `policy_commitment` | Ledger | Public opaque value |
+| `owner_commitment` | Ledger | Public opaque value; does not reveal owner secret |
+| `active`, `vault_color` | Ledger | Public lifecycle state and accepted public token color |
 | `purpose` | Agent/owner UI | Not sent on-chain |
 | `requestHash` | Proposal and ledger receipt | Public; binds normalized purpose without revealing it |
 | `nonce` | Proposal | Nullifier derived and disclosed; raw nonce stays client-side |
 | Successful amount/recipient | Transaction | Public due to `sendUnshielded` |
+| Recovery amount/recipient | Transaction | Public due to `sendUnshielded`; close status is public |
 
 ## Observer isolation evidence
 
@@ -58,6 +62,7 @@ A response scan rejected the keys `maxPerPayment`, `maxTotalSpend`, `remainingPr
 - A single-recipient vault eventually reveals that recipient after its first successful payment.
 - Payment count and timing are public.
 - Local endpoint isolation does not protect a compromised owner machine.
+- The prototype's one trusted private-state runtime can access both policy and owner witnesses; distinct commitments do not provide process isolation.
 
 ## Operational rules
 

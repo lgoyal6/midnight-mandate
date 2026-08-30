@@ -3,7 +3,7 @@
 ## Protected assets and properties
 
 - Test NIGHT held by the contract.
-- Secrecy of the policy secret, per-payment cap, cumulative cap, and preconfigured recipient before execution.
+- Secrecy of the policy secret, owner-recovery secret, per-payment cap, cumulative cap, and preconfigured recipient before execution.
 - Integrity of amount, recipient, request commitment, nonce, network, and contract binding.
 - Atomicity between authorization and settlement.
 - Honest demo evidence: no mock may appear as a proof or payment.
@@ -59,6 +59,12 @@
 
 **Mitigation:** the circuit recomputes the full domain-separated policy commitment and requires equality with the constructor value.
 
+### Stranded funds or unauthorized recovery
+
+**Attempt:** excess deposit remains after the lifetime budget is exhausted, or the delegated policy secret is reused to drain custody through an owner path.
+
+**Mitigation:** a separately domain-separated owner commitment gates `close_vault`; tests reject both the policy secret and a random owner secret. The vault accepts one token color, and close requires the exact full remaining balance, returns it in the same call, marks the vault inactive, and preserves historical payment evidence.
+
 ### UI data leak
 
 **Attempt:** recover private fields from a supposedly public view through response inspection or CSS-hidden DOM.
@@ -87,17 +93,18 @@
 
 - Prototype contract custody is unaudited and restricted to test assets.
 - The cumulative ceiling is lifetime-only: there is no epoch/day reset.
-- Funds deposited above the private cumulative ceiling can become locked because owner withdrawal is absent.
-- No expiry, revocation, policy rotation, recovery, or multisig.
+- Recovery is all-or-nothing and permanently closes the vault; there is no partial withdrawal or reopen.
+- No expiry, policy rotation, owner-key rotation/guardians, or multisig.
 - Contract policy is immutable; changing it requires redeployment.
-- The delegated runtime knows the policy.
+- The prototype's delegated proving runtime knows the policy and can access the owner witness because both currently share one private-state provider. Distinct commitments prevent accidental key reuse but are not process isolation.
+- Loss of the owner secret makes recovery unavailable.
 - Public unshielded settlement leaks amount and recipient.
 - A denial can occur during local circuit simulation without producing a public failed transaction receipt.
 
 ## Roadmap mitigations
 
 - Epoch/day budgets and expiry.
-- Owner-secret authenticated revoke/withdraw/rotation.
+- Separate owner signer/private-state provider plus owner-key rotation and guardians.
 - Merchant-set membership rather than one fixed recipient.
 - Shielded outgoing settlement.
 - Sponsored DUST and walletless agent execution.

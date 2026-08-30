@@ -5,7 +5,7 @@ import {
   type Contract,
   ledger,
 } from '../contracts/index.js';
-import { policyCommitment } from './contract.js';
+import { ownerCommitment, policyCommitment } from './contract.js';
 import type { MandateProviders } from './providers.js';
 import { privateStateFromPolicy } from './witnesses.js';
 
@@ -14,6 +14,7 @@ export type PrivateMandate = {
   maxPerPayment: bigint;
   maxTotalSpend: bigint;
   allowedRecipient: Uint8Array;
+  ownerSecret: Uint8Array;
 };
 
 export type MandatePayment = {
@@ -57,7 +58,7 @@ export class MandateClient {
       compiledContract: CompiledMandateContract,
       privateStateId,
       initialPrivateState: privateStateFromPolicy(mandate),
-      args: [commitment],
+      args: [commitment, ownerCommitment(mandate.ownerSecret)],
     });
     const contractAddress = deployed.deployTxData.public.contractAddress;
     return {
@@ -98,6 +99,21 @@ export class MandateClient {
         payment.requestCommitment,
         payment.nonce,
       ],
+    });
+    return transactionId(result);
+  }
+
+  async closeVault(
+    color: Uint8Array,
+    amount: bigint,
+    recipient: Uint8Array,
+  ): Promise<string> {
+    const result = await submitCallTx<Contract, 'close_vault'>(this.providers, {
+      compiledContract: CompiledMandateContract,
+      contractAddress: this.contractAddress,
+      privateStateId: this.privateStateId,
+      circuitId: 'close_vault',
+      args: [color, amount, { bytes: recipient }],
     });
     return transactionId(result);
   }

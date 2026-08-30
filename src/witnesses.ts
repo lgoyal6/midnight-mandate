@@ -7,6 +7,7 @@ export interface MandatePrivateState {
   maxPerPayment: string;
   maxTotalSpend: string;
   allowedRecipientHex: string;
+  ownerSecretHex: string;
 }
 
 export function privateStateFromPolicy(policy: {
@@ -14,12 +15,14 @@ export function privateStateFromPolicy(policy: {
   maxPerPayment: bigint;
   maxTotalSpend: bigint;
   allowedRecipient: Uint8Array;
+  ownerSecret: Uint8Array;
 }): MandatePrivateState {
   return {
     policySecretHex: bytesToHex(policy.policySecret),
     maxPerPayment: policy.maxPerPayment.toString(),
     maxTotalSpend: policy.maxTotalSpend.toString(),
     allowedRecipientHex: bytesToHex(policy.allowedRecipient),
+    ownerSecretHex: bytesToHex(policy.ownerSecret),
   };
 }
 
@@ -38,6 +41,9 @@ export function makeWitnesses() {
     },
     allowed_recipient(ctx: Ctx): [MandatePrivateState, Uint8Array] {
       return [ctx.privateState, hexToBytes(ctx.privateState.allowedRecipientHex)];
+    },
+    owner_secret(ctx: Ctx): [MandatePrivateState, Uint8Array] {
+      return [ctx.privateState, hexToBytes(ctx.privateState.ownerSecretHex)];
     },
   };
 }

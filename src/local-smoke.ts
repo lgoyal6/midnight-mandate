@@ -40,6 +40,11 @@ export type LocalSmokeEvidence = {
   vendorBeforePayment: string;
   vendorAfterPayment: string;
   cumulativeSpendAfterPayment: string;
+  closeTxId: string;
+  ownerBeforeRecovery: string;
+  ownerAfterRecovery: string;
+  vaultAfterClose: string;
+  activeAfterClose: boolean;
   rejected: string[];
   recordedAt: string;
 };
@@ -49,14 +54,30 @@ function invariant(condition: unknown, message: string): asserts condition {
 }
 
 function sameState(
-  left: { balance: bigint; count: bigint; cumulativeSpend: bigint; nullifiers: bigint },
-  right: { balance: bigint; count: bigint; cumulativeSpend: bigint; nullifiers: bigint },
+  left: {
+    balance: bigint;
+    count: bigint;
+    cumulativeSpend: bigint;
+    nullifiers: bigint;
+    receipts: bigint;
+    active: boolean;
+  },
+  right: {
+    balance: bigint;
+    count: bigint;
+    cumulativeSpend: bigint;
+    nullifiers: bigint;
+    receipts: bigint;
+    active: boolean;
+  },
 ): boolean {
   return (
     left.balance === right.balance &&
     left.count === right.count &&
     left.cumulativeSpend === right.cumulativeSpend &&
-    left.nullifiers === right.nullifiers
+    left.nullifiers === right.nullifiers &&
+    left.receipts === right.receipts &&
+    left.active === right.active
   );
 }
 
@@ -131,6 +152,7 @@ export async function runLocalSmoke(options?: {
     invariant(held.length > 0, 'local genesis owner must hold unshielded NIGHT');
     const colorHex = held[0]![0];
     const color = hexToBytes32(colorHex);
+    const ownerAddress = userAddressBytes(ownerInitial.unshielded);
     const vendorInitial = await walletState(vendor);
     const vendorAddress = userAddressBytes(vendorInitial.unshielded);
     const vendorBalanceBefore = balanceFor(vendorInitial, colorHex);
@@ -142,6 +164,7 @@ export async function runLocalSmoke(options?: {
     const providers = buildProviders(owner, zkConfigPath, config);
     const privateStateId = `midnight-mandate-local-owner-${Date.now()}`;
     const policySecret = randomBytes32();
+    const ownerSecret = randomBytes32();
     const { client, deploymentTxId } = await MandateClient.deploy(
       providers,
       privateStateId,
@@ -150,6 +173,7 @@ export async function runLocalSmoke(options?: {
         maxPerPayment: CAP,
         maxTotalSpend: TOTAL_CAP,
         allowedRecipient: vendorAddress,
+        ownerSecret,
       },
     );
     logger.info(
@@ -217,6 +241,8 @@ export async function runLocalSmoke(options?: {
       count: paidLedger.payment_count,
       cumulativeSpend: paidLedger.cumulative_spend,
       nullifiers: paidLedger.used_nullifiers.size(),
+      receipts: paidLedger.payment_receipts.size(),
+      active: paidLedger.active,
     };
 
     await expectRejected(
@@ -276,6 +302,8 @@ export async function runLocalSmoke(options?: {
           count: afterAttacks.payment_count,
           cumulativeSpend: afterAttacks.cumulative_spend,
           nullifiers: afterAttacks.used_nullifiers.size(),
+          receipts: afterAttacks.payment_receipts.size(),
+          active: afterAttacks.active,
         },
         stable,
       ),
@@ -284,6 +312,74 @@ export async function runLocalSmoke(options?: {
     invariant(
       balanceFor(await walletState(vendor), colorHex) === vendorBalanceAfter,
       'rejected attacks must not move vendor funds',
+    );
+
+    const ownerBeforeRecovery = balanceFor(await walletState(owner), colorHex);
+    const recoveryAmount = afterAttacks.night_balances.lookup(color);
+    const closeTxId = await client.closeVault(color, recoveryAmount, ownerAddress);
+    const closedLedger = await client.inspect();
+    invariant(closedLedger.active === false, 'owner close must deactivate the vault');
+    invariant(
+      closedLedger.night_balances.lookup(color) === 0n,
+      'owner close must empty the vault',
+    );
+    invariant(
+      closedLedger.cumulative_spend === VALID_AMOUNT && closedLedger.payment_count === 1n,
+      'owner close must preserve payment evidence',
+    );
+    const ownerAfterRecoveryState = await waitForWalletBalance(
+      owner,
+      colorHex,
+      ownerBeforeRecovery + recoveryAmount,
+    );
+    const ownerAfterRecovery = balanceFor(ownerAfterRecoveryState, colorHex);
+    invariant(
+      ownerAfterRecovery - ownerBeforeRecovery === recoveryAmount,
+      'owner must recover the exact remaining vault balance',
+    );
+    logger.info(
+      { closeTxId, recovered: recoveryAmount, vaultAfterClose: 0 },
+      'owner-authenticated vault close confirmed',
+    );
+
+    const closedStable = {
+      balance: closedLedger.night_balances.lookup(color),
+      count: closedLedger.payment_count,
+      cumulativeSpend: closedLedger.cumulative_spend,
+      nullifiers: closedLedger.used_nullifiers.size(),
+      receipts: closedLedger.payment_receipts.size(),
+      active: closedLedger.active,
+    };
+    await expectRejected(
+      logger,
+      'closed-vault',
+      client.pay({
+        color,
+        amount: 1n,
+        recipient: vendorAddress,
+        requestCommitment,
+        nonce: randomBytes32(),
+      }),
+      /vault closed/,
+    );
+    const afterClosedAttack = await client.inspect();
+    invariant(
+      sameState(
+        {
+          balance: afterClosedAttack.night_balances.lookup(color),
+          count: afterClosedAttack.payment_count,
+          cumulativeSpend: afterClosedAttack.cumulative_spend,
+          nullifiers: afterClosedAttack.used_nullifiers.size(),
+          receipts: afterClosedAttack.payment_receipts.size(),
+          active: afterClosedAttack.active,
+        },
+        closedStable,
+      ),
+      'closed-vault attack must not mutate contract state',
+    );
+    invariant(
+      balanceFor(await walletState(vendor), colorHex) === vendorBalanceAfter,
+      'closed-vault attack must not move vendor funds',
     );
 
     const evidence: LocalSmokeEvidence = {
@@ -298,7 +394,18 @@ export async function runLocalSmoke(options?: {
       vendorBeforePayment: vendorBalanceBefore.toString(),
       vendorAfterPayment: vendorBalanceAfter.toString(),
       cumulativeSpendAfterPayment: paidLedger.cumulative_spend.toString(),
-      rejected: ['over-cap', 'cumulative-budget', 'wrong-recipient', 'replay'],
+      closeTxId,
+      ownerBeforeRecovery: ownerBeforeRecovery.toString(),
+      ownerAfterRecovery: ownerAfterRecovery.toString(),
+      vaultAfterClose: closedLedger.night_balances.lookup(color).toString(),
+      activeAfterClose: closedLedger.active,
+      rejected: [
+        'over-cap',
+        'cumulative-budget',
+        'wrong-recipient',
+        'replay',
+        'closed-vault',
+      ],
       recordedAt: new Date().toISOString(),
     };
 

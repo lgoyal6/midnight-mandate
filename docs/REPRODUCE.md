@@ -45,7 +45,7 @@ yarn demo:smoke
 This command:
 
 1. compiles Compact;
-2. runs 11 contract and 12 proposal tests;
+2. runs 17 contract and 12 proposal tests;
 3. type-checks the Node/client code;
 4. reuses or starts a compatible local Midnight node/indexer/proof stack;
 5. deploys a fresh vault;
@@ -53,7 +53,9 @@ This command:
 7. sends 5 through `agent_pay`;
 8. checks exact vault/vendor deltas;
 9. runs over-cap, cumulative-budget, wrong-recipient, and replay attacks;
-10. exits zero only when all attacks fail without state/balance movement.
+10. proves owner recovery of the entire remaining 45 and permanently closes the vault;
+11. rejects a post-close payment without state/balance movement;
+12. exits zero only when all payment, rejection, and recovery assertions hold.
 
 ## Visual flow
 

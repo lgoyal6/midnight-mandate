@@ -39,9 +39,10 @@ yarn demo:smoke
 - Private per-payment cap, cumulative ceiling, recipient, and policy secret are bound into one Compact commitment.
 - One real local transaction paid 5 NIGHT from contract custody and advanced public cumulative spend to 5.
 - Four real adversarial calls reject with zero movement: over-cap, cumulative-budget, wrong-recipient, and replay.
+- A separately committed owner secret recovered the remaining 45, set the vault balance to zero, and permanently closed deposits and agent payments.
 - The aggregate case is deliberately nontrivial: after spending 5, a fresh 8 is below the 10-per-payment cap but exceeds the hidden total of 12.
 - The isolated observer API/DOM exposes public cumulative spend but not the private ceiling or remaining allowance.
-- `yarn verify` covers Compact compile, 11 contract tests, 12 proposal tests, both TypeScript builds, production web build, and secret scan.
+- `yarn verify` covers Compact compile, 17 contract tests, 12 proposal tests, both TypeScript builds, production web build, and secret scan.
 
 ## Best parallel next steps
 
@@ -65,7 +66,7 @@ No code change is required for this lane. Do not claim Preprod, mainnet, private
 
 - Review [`contracts/mandate.compact`](contracts/mandate.compact) and [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 - Check that every ledger mutation on a denied aggregate request rolls back.
-- Look specifically for overflow, locked-fund, stale-private-state, and concurrent fresh-nonce edge cases.
+- Look specifically for overflow, owner/prover authority separation, lost-owner-key, stale-private-state, and concurrent fresh-nonce edge cases.
 - Add a failing test before changing contract behavior.
 
 ### 4. UI/demo reviewer
@@ -88,6 +89,8 @@ No code change is required for this lane. Do not claim Preprod, mainnet, private
 
 - Settlement is unshielded and public.
 - The cumulative ceiling is lifetime-only; there is no epoch/day reset.
-- Deposits above the cumulative ceiling can become locked because owner withdrawal is not implemented.
-- Policy rotation, revocation, expiry, recovery, multisig, and shielded payout are not implemented.
+- Recovery is all-or-nothing and permanently closes the vault; there is no partial withdrawal or reopen.
+- Policy rotation, owner-key rotation/guardians, expiry, multisig, and shielded payout are not implemented.
+- Policy and owner secrets currently share one trusted local private-state runtime, so the prototype has cryptographic key separation but not process isolation.
+- Loss of the owner secret makes recovery unavailable.
 - Local devnet is the verified baseline; Preprod remains wallet-gated.

@@ -4,7 +4,13 @@ import {
   sampleContractAddress,
   type CircuitContext,
 } from '@midnight-ntwrk/compact-runtime';
-import { Contract, ledger, policyCommitment, type Ledger } from './contract.js';
+import {
+  Contract,
+  ledger,
+  ownerCommitment,
+  policyCommitment,
+  type Ledger,
+} from './contract.js';
 import {
   makeWitnesses,
   privateStateFromPolicy,
@@ -18,6 +24,7 @@ export interface Policy {
   maxPerPayment: bigint;
   maxTotalSpend: bigint;
   allowedRecipient: Uint8Array;
+  ownerSecret: Uint8Array;
 }
 
 export class MandateSimulator {
@@ -39,6 +46,7 @@ export class MandateSimulator {
         policy.maxTotalSpend,
         policy.allowedRecipient,
       ),
+      ownerCommitment(policy.ownerSecret),
     );
     this.ctx = createCircuitContext(
       this.address,

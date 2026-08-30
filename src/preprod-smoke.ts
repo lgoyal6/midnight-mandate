@@ -120,6 +120,7 @@ export async function runPreprodSmoke(options?: {
         maxPerPayment: CAP,
         maxTotalSpend: TOTAL_CAP,
         allowedRecipient: recipient,
+        ownerSecret: randomBytes32(),
       },
     );
     logger.info({ contractAddress: client.contractAddress, deploymentTxId }, 'Preprod deploy confirmed');

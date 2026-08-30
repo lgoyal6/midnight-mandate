@@ -18,6 +18,7 @@ const evidence = await runLocalSmoke({
 console.log('\nMIDNIGHT_MANDATE_SMOKE_PASS');
 console.log(`contract=${evidence.contractAddress}`);
 console.log(`payment_tx=${evidence.paymentTxId}`);
+console.log(`close_tx=${evidence.closeTxId}`);
 console.log(
   `vault_delta=${BigInt(evidence.vaultAfterPayment) - BigInt(evidence.vaultBeforePayment)}`,
 );
@@ -25,4 +26,8 @@ console.log(
   `vendor_delta=+${BigInt(evidence.vendorAfterPayment) - BigInt(evidence.vendorBeforePayment)}`,
 );
 console.log(`cumulative_spend=${evidence.cumulativeSpendAfterPayment}`);
+console.log(
+  `owner_recovered=+${BigInt(evidence.ownerAfterRecovery) - BigInt(evidence.ownerBeforeRecovery)}`,
+);
+console.log(`vault_after_close=${evidence.vaultAfterClose}`);
 console.log(`rejected=${evidence.rejected.join(',')}`);

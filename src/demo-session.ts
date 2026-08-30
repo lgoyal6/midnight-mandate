@@ -185,6 +185,7 @@ export class LocalDemoSession {
           maxPerPayment: MAX_PER_PAYMENT,
           maxTotalSpend: MAX_TOTAL_SPEND,
           allowedRecipient: vendorAddress,
+          ownerSecret: randomBytes32(),
         },
       );
       await deployed.client.deposit(color, INITIAL_BUDGET);
