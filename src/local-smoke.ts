@@ -5,6 +5,8 @@ import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import type { EnvironmentConfiguration } from '@midnight-ntwrk/testkit-js';
 import { zkConfigPath } from '../contracts/index.js';
 import { MandateClient } from './client.js';
+import { FixturePaymentIntentModel, proposalFromModel } from './agent/model.js';
+import { proposalToMandatePayment } from './agent/proposal.js';
 import { getConfig } from './config.js';
 import { buildProviders } from './providers.js';
 import { MidnightWalletProvider, syncWallet } from './wallet.js';
@@ -159,14 +161,23 @@ export async function runLocalSmoke(options?: {
     logger.info({ depositTxId }, 'vault deposit confirmed');
 
     const validNonce = randomBytes32();
-    const requestCommitment = hexToBytes32('010203');
-    const paymentTxId = await client.pay({
-      color,
-      amount: VALID_AMOUNT,
-      recipient: vendorAddress,
-      requestCommitment,
-      nonce: validNonce,
+    const validProposal = await proposalFromModel(
+      'Pay 5 NIGHT to vendor for local smoke invoice',
+      {
+        networkId: 'undeployed',
+        contractAddress: String(client.contractAddress),
+        tokenColor: colorHex,
+        recipients: { vendor: Buffer.from(vendorAddress).toString('hex') },
+        nonce: Buffer.from(validNonce).toString('hex'),
+      },
+      new FixturePaymentIntentModel(),
+    );
+    const validPayment = proposalToMandatePayment(validProposal, {
+      networkId: 'undeployed',
+      contractAddress: String(client.contractAddress),
     });
+    const requestCommitment = validPayment.requestCommitment;
+    const paymentTxId = await client.pay(validPayment);
     const paidLedger = await client.inspect();
     invariant(
       paidLedger.night_balances.lookup(color) === DEPOSIT - VALID_AMOUNT,
