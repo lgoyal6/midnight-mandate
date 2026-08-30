@@ -7,7 +7,7 @@ This file is the source of truth for the final Devpost entry and two-minute vide
 - **Project:** Midnight Mandate
 - **Tagline:** Private spending rules. Atomic agent payments.
 - **Primary track:** AI
-- **Repository:** `[PUBLIC_REPOSITORY_URL]`
+- **Repository:** `https://github.com/lgoyal6/midnight-mandate`
 - **Demo video:** `[PUBLIC_VIDEO_URL]`
 - **Team:** `[TEAM_MEMBER_NAMES_AND_DISCORD_IDS]`
 

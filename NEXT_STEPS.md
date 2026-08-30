@@ -4,9 +4,23 @@ This repository is being built during the Midnight Hackathon event window. Pull 
 
 ## Join the build
 
+Direct collaborator:
+
 ```bash
 git clone https://github.com/lgoyal6/midnight-mandate.git
 cd midnight-mandate
+```
+
+Contributor without direct write access:
+
+```bash
+gh repo fork lgoyal6/midnight-mandate --clone
+cd midnight-mandate
+```
+
+Then:
+
+```bash
 corepack enable
 corepack prepare yarn@1.22.22 --activate
 yarn install --frozen-lockfile

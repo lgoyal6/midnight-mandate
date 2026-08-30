@@ -2,6 +2,8 @@
 
 **Private spending rules. Atomic agent payments.**
 
+[![Verify](https://github.com/lgoyal6/midnight-mandate/actions/workflows/verify.yml/badge.svg)](https://github.com/lgoyal6/midnight-mandate/actions/workflows/verify.yml)
+
 Midnight Mandate is a contract-custodied NIGHT vault for delegated AI-agent payments. An agent may propose a payment, but the vault releases funds only when the same Compact circuit proves that the exact amount, recipient, and running spend satisfy a privately committed mandate.
 
 ![Midnight Mandate privately bounded cumulative budget rejection](artifacts/ui-cumulative-rejected.png)
