@@ -6,6 +6,7 @@ artifacts/*.json
 artifacts/*.webm
 artifacts/ui-rehearsal-*.png
 artifacts/ui-recording-ready.png
+artifacts/user-test-*.png
 !.gitkeep
 .env
 .env.*

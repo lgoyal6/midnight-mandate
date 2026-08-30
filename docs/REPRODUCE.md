@@ -106,6 +106,10 @@ The first recovery milestone was contract/client/smoke complete but not visible 
 
 The first real browser recording included vault initialization and lasted 137.2 seconds, exceeding the 120-second submission limit. Initialization alone took 45 seconds. Initializing before recording produced a 34.5-second silent clean take containing proposal creation, a real proof-backed payment, and all four rejection paths. Rehearsal timing and transaction identifiers are recorded in [`evidence/demo-rehearsal.json`](../evidence/demo-rehearsal.json). The final narrated take still needs the required hackathon-name opening and public signed-out verification.
 
+### A pre-opened observer window became stale
+
+The isolated observer originally fetched its public projection only once. In a two-window rehearsal it stayed at payment count `0`, vault `50`, and lifecycle `active` after the owner window had paid and closed the vault. The observer now refreshes when focused or made visible and every three seconds while open. Its server path also derives the response directly from ledger/indexer-visible state instead of constructing the combined owner snapshot and discarding fields afterward.
+
 ## Individual teammate steps
 
 - Everyone: install pinned Node/Yarn/Compact/Docker and run `yarn demo:smoke`.

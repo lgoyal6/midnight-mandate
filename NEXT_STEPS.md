@@ -52,6 +52,7 @@ For product/track context, use [`RESEARCH.md`](RESEARCH.md). For the non-negotia
 
 - Rehearse [`docs/DEMO.md`](docs/DEMO.md) and [`SUBMISSION.md`](SUBMISSION.md).
 - Read [`evidence/demo-rehearsal.json`](evidence/demo-rehearsal.json): initialize before recording. The measured cold-start take was 137.2 seconds; the initialized real flow was 34.5 seconds.
+- Complete the operator self-test in [`docs/DEMO.md`](docs/DEMO.md). The second observer window now refreshes automatically after payment and recovery; do not accept stale values or manually reload during the test.
 - Record a new video during the event; keep it at or below two minutes and say “Midnight Hackathon: August 2026” at the beginning.
 - Show the valid 5 payment, then the 11 per-payment rejection and fresh 8 cumulative rejection.
 - Verify the public repository and video in a signed-out browser before Devpost submission.

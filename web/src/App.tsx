@@ -247,7 +247,11 @@ function CommandCenter() {
               key={kind}
               className={`attack-card ${state.attacks[kind] === 'rejected-no-movement' ? 'rejected' : ''}`}
               onClick={() => attack(kind)}
-              disabled={Boolean(busy) || state.phase !== 'paid'}
+              disabled={
+                Boolean(busy) ||
+                state.phase !== 'paid' ||
+                state.attacks[kind] === 'rejected-no-movement'
+              }
             >
               <span className="attack-icon">{state.attacks[kind] === 'rejected-no-movement' ? '✓' : '×'}</span>
               <span><strong>{busy === kind ? 'Submitting real attack…' : title}</strong><small>{state.attacks[kind] === 'rejected-no-movement' ? 'Rejected · zero balance movement' : detail}</small></span>
@@ -291,9 +295,43 @@ function ObserverPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.observer().then(setState).catch((reason) => {
-      setError(reason instanceof Error ? reason.message : String(reason));
-    });
+    let active = true;
+    let pending = false;
+
+    async function refresh() {
+      if (pending) return;
+      pending = true;
+      try {
+        const next = await api.observer();
+        if (active) {
+          setState(next);
+          setError(null);
+        }
+      } catch (reason) {
+        if (active) {
+          setError(reason instanceof Error ? reason.message : String(reason));
+        }
+      } finally {
+        pending = false;
+      }
+    }
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void refresh();
+    };
+    const refreshOnFocus = () => void refresh();
+
+    void refresh();
+    const interval = window.setInterval(() => void refresh(), 3_000);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    window.addEventListener('focus', refreshOnFocus);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+      window.removeEventListener('focus', refreshOnFocus);
+    };
   }, []);
 
   return (
@@ -313,7 +351,7 @@ function ObserverPage() {
             <div><span className="step">PUB</span><h2>Indexed contract state</h2></div>
             <span className="privacy public">Public</span>
           </div>
-          <div className="ledger-list roomy">
+          <div className="ledger-list roomy" aria-live="polite">
             <div><span>Network</span><strong>{state.observer?.networkId ?? '—'}</strong></div>
             <div><span>Contract</span><code>{short(state.observer?.contractAddress, 14)}</code></div>
             <div><span>Policy commitment</span><code>{short(state.observer?.policyCommitment, 14)}</code></div>

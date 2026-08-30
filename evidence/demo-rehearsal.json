@@ -43,5 +43,35 @@
     "publicObserverPrivateInstructionAbsent": true,
     "finalScreenshot": "artifacts/ui-demo-final.png"
   },
+  "twoWindowRegressionVerification": {
+    "contractAddress": "971a2e0dd45675d09149cbde72ef0279c24d5f58aa1e7ce45a7516c12e65e4a8",
+    "deploymentTransactionId": "00600a1368ad4a4312b428cb8d19d65a95b2d86110c08d5e74f44c2708237ae5a5",
+    "paymentTransactionId": "000beed2e1e6da562e523b8dfd25820e06793add0b0e70df754b0692f404b3e55f",
+    "recoveryTransactionId": "0070ed1057c0f9bd715e78d0fde9d345c574c45b0be2c8ada26c8f6478130a8e61",
+    "publicPhaseDuringPrivateProposal": "ready",
+    "forbiddenPublicApiKeysFound": 0,
+    "observerPaymentAutoRefreshSeconds": 1,
+    "observerCloseAutoRefreshSeconds": 2,
+    "observerFinalPaymentCount": "1",
+    "observerFinalVaultBalance": "0",
+    "observerFinalLifecycle": "closed",
+    "ownerAndObserverBrowserErrors": [],
+    "recordedAt": "2026-08-30T09:54:42Z"
+  },
+  "liveAiProviderVerification": {
+    "provider": "Relaystation LLM Extract through Zero",
+    "capability": "relaystation-llm-extract-3f700fa6",
+    "runId": "run_nzkwpDETwp-jHUJwdrHgM",
+    "costUsdc": "0.01",
+    "latencyMilliseconds": 5236,
+    "input": "Pay 5 NIGHT to vendor for invoice INV-42",
+    "result": {
+      "amount": 5,
+      "recipientAlias": "vendor",
+      "purpose": "Pay 5 NIGHT to vendor for invoice INV-42"
+    },
+    "schemaConformant": true,
+    "recordedAt": "2026-08-30T09:57:26Z"
+  },
   "recordedAt": "2026-08-30T05:57:56Z"
 }

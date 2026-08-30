@@ -18,6 +18,21 @@ Initialize the vault **before** starting the final recording. A measured cold in
 
 The checked-in rehearsal evidence is [`evidence/demo-rehearsal.json`](../evidence/demo-rehearsal.json). The silent WebM stays local and is intentionally ignored; it is evidence for the team, not the final public submission.
 
+## Operator self-test
+
+Run this once before the final take. It is deliberately the same path the video uses:
+
+1. Wait until the terminal prints both `MIDNIGHT_STACK_READY` and `MANDATE_DEMO_API_READY`.
+2. Select **Initialize real vault** and wait for **Vault ready**. Do this before recording.
+3. Open `/observer` in a second window. It should show payment count `0`, cumulative spend `0`, vault `50`, and no private caps or invoice text.
+4. In the owner window, select **Create typed proposal**, then **Prove & pay**. Wait for the transaction ID and `50 → 45` vault change.
+5. Without reloading the observer window, confirm it updates within three seconds to payment count `1`, cumulative spend `5`, and vault `45`.
+6. Run each attack once. Each card must become disabled with **Rejected · zero balance movement**, ending at **4/4 blocked**.
+7. For the rehearsal only, select **Recover 45 & close**. Confirm owner and observer both reach vault `0` and lifecycle `closed`; the observer must update without a manual reload.
+8. Stop and restart `yarn demo:ui`, initialize a fresh vault, and then record the shorter script below without the recovery beat.
+
+Use **Deterministic** for the final take. The paid **Live AI** extractor has been verified separately, but it is intentionally not a recording dependency.
+
 ## Script
 
 ### 0:00–0:12 — Problem
@@ -26,7 +41,7 @@ The checked-in rehearsal evidence is [`evidence/demo-rehearsal.json`](../evidenc
 
 ### 0:12–0:30 — Privacy boundary
 
-Initialize the vault. Show owner per-payment cap `10`, cumulative ceiling `12`, recipient `vendor`, and deposit `50`. Switch briefly to `/observer`.
+Show the already-initialized vault: owner per-payment cap `10`, cumulative ceiling `12`, recipient `vendor`, and deposit `50`. Switch briefly to `/observer`.
 
 “The public endpoint receives only a policy commitment and public custody state. This prototype uses unshielded settlement, so a successful amount and recipient become public.”
 

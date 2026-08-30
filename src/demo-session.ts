@@ -461,12 +461,37 @@ export class LocalDemoSession {
   }
 
   async publicObserverSnapshot(): Promise<PublicObserverSnapshot> {
-    const snapshot = await this.snapshot();
+    if (!this.client) {
+      return {
+        phase: 'cold',
+        observer: null,
+        vendorBalance: null,
+        events: [],
+      };
+    }
+
+    const ready = this.ready();
+    const ledger = await ready.client.inspect();
+    const vaultBalance = ledger.night_balances.lookup(ready.color).toString();
+    const vendorBalance = balanceFor(await walletState(ready.vendor), ready.colorHex).toString();
+
     return {
-      phase: snapshot.phase,
-      observer: snapshot.observer,
-      vendorBalance: snapshot.vendorBalance,
-      events: snapshot.events.filter(
+      phase: !ledger.active ? 'closed' : ledger.payment_count > 0n ? 'paid' : 'ready',
+      observer: {
+        networkId: 'undeployed',
+        contractAddress: String(ready.client.contractAddress),
+        policyCommitment: bytesToHex(ledger.policy_commitment),
+        ownerCommitment: bytesToHex(ledger.owner_commitment),
+        active: ledger.active,
+        vaultColor: ledger.has_vault_color ? bytesToHex(ledger.vault_color) : null,
+        vaultBalance,
+        paymentCount: ledger.payment_count.toString(),
+        cumulativeSpend: ledger.cumulative_spend.toString(),
+        usedNullifiers: ledger.used_nullifiers.size().toString(),
+        paymentReceipts: ledger.payment_receipts.size().toString(),
+      },
+      vendorBalance,
+      events: this.events.filter(
         (event) =>
           event.kind === 'system' || event.kind === 'payment' || event.kind === 'recovery',
       ),

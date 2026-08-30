@@ -41,9 +41,11 @@ The prototype deliberately does not claim private settlement: successful amount 
 
 - Compact simulator: 17/17 tests passed.
 - Proposal authority boundary: 12/12 tests passed.
+- Live AI extraction: a current paid schema-guided call returned the exact allowed three-field proposal in 5.2 seconds; the deterministic adapter remains the recording-safe path.
 - Real local proof/payment: vault `50 → 45`, vendor `+5`.
 - Real recovery: a distinct owner-secret proof returned the remaining `45`, left vault balance `0`, and set it permanently inactive.
 - Browser recovery: the owner control stayed disabled until 4/4 rejection checks passed, then confirmed close transaction `00e768b67c3160dfba50b5c5182e85f629e5f046116fe5229789abbe053e305ac3`; the public observer showed `closed` without either secret.
+- Two-window observer regression: the untouched public window automatically advanced from payment count `0`/vault `50` to `1`/`45`, then to vault `0`/`closed`; the response contained zero forbidden owner, proposal, instruction, or attack keys.
 - Real negative paths: over-cap, cumulative-budget, wrong-recipient, replay, and post-close payment all rejected with unchanged balances and state.
 - Fresh public-clone reproduction: frozen install, full verification, and the complete one-command payment/recovery smoke all passed from commit `33fb4b4`; its independent Linux CI gate also passed.
 - Public-clone local transactions: payment `00899429e1988283d4b1580ed1e5135a4899a72d59bbd04ba1376e6d47f3f94648`; owner close `00b9ed3bffa711075165aa5bbc6f21402a46541270c1646864ef1f0eb2850b9cbe`.
