@@ -1,7 +1,7 @@
 import type { PaymentProposalV1 } from './agent/proposal.js';
 
 export type DemoMode = 'deterministic' | 'live-ai';
-export type AttackKind = 'over-cap' | 'wrong-recipient' | 'replay';
+export type AttackKind = 'over-cap' | 'cumulative-budget' | 'wrong-recipient' | 'replay';
 export type AttackStatus = 'not-run' | 'rejected-no-movement';
 
 export type DemoEvent = {
@@ -15,6 +15,8 @@ export type DemoSnapshot = {
   phase: 'cold' | 'ready' | 'proposed' | 'paid';
   owner: null | {
     maxPerPayment: string;
+    maxTotalSpend: string;
+    remainingPrivateBudget: string;
     allowedRecipientAlias: string;
     allowedRecipient: string;
     initialBudget: string;
@@ -33,6 +35,7 @@ export type DemoSnapshot = {
     policyCommitment: string;
     vaultBalance: string;
     paymentCount: string;
+    cumulativeSpend: string;
     usedNullifiers: string;
     paymentReceipts: string;
   };

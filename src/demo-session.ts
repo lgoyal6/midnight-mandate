@@ -35,10 +35,12 @@ const VENDOR_LOCAL_SEED =
   '0000000000000000000000000000000000000000000000000000000000000002';
 const INITIAL_BUDGET = 50n;
 const MAX_PER_PAYMENT = 10n;
+const MAX_TOTAL_SPEND = 12n;
 
 type LedgerSnapshot = {
   balance: bigint;
   count: bigint;
+  cumulativeSpend: bigint;
   nullifiers: bigint;
   receipts: bigint;
 };
@@ -61,6 +63,7 @@ function sameLedger(left: LedgerSnapshot, right: LedgerSnapshot): boolean {
   return (
     left.balance === right.balance &&
     left.count === right.count &&
+    left.cumulativeSpend === right.cumulativeSpend &&
     left.nullifiers === right.nullifiers &&
     left.receipts === right.receipts
   );
@@ -92,6 +95,7 @@ export class LocalDemoSession {
   private paymentTxId: string | null = null;
   private readonly attackStatus: Record<AttackKind, 'not-run' | 'rejected-no-movement'> = {
     'over-cap': 'not-run',
+    'cumulative-budget': 'not-run',
     'wrong-recipient': 'not-run',
     replay: 'not-run',
   };
@@ -179,6 +183,7 @@ export class LocalDemoSession {
         {
           policySecret,
           maxPerPayment: MAX_PER_PAYMENT,
+          maxTotalSpend: MAX_TOTAL_SPEND,
           allowedRecipient: vendorAddress,
         },
       );
@@ -270,6 +275,7 @@ export class LocalDemoSession {
     return {
       balance: ledger.night_balances.lookup(color),
       count: ledger.payment_count,
+      cumulativeSpend: ledger.cumulative_spend,
       nullifiers: ledger.used_nullifiers.size(),
       receipts: ledger.payment_receipts.size(),
     };
@@ -291,12 +297,22 @@ export class LocalDemoSession {
         networkId: 'undeployed',
         contractAddress: String(ready.client.contractAddress),
         tokenColor: ready.colorHex,
-        amount: kind === 'over-cap' ? MAX_PER_PAYMENT + 1n : 5n,
+        amount:
+          kind === 'over-cap'
+            ? MAX_PER_PAYMENT + 1n
+            : kind === 'cumulative-budget'
+              ? MAX_TOTAL_SPEND - 5n + 1n
+              : 5n,
         recipient: kind === 'wrong-recipient' ? 'ff'.repeat(32) : ready.vendorAddressHex,
         purpose: `adversarial ${kind} attempt`,
         nonce: bytesToHex(randomBytes32()),
       });
-      pattern = kind === 'over-cap' ? /private payment cap exceeded/ : /recipient outside mandate/;
+      pattern =
+        kind === 'over-cap'
+          ? /private payment cap exceeded/
+          : kind === 'cumulative-budget'
+            ? /private cumulative budget exceeded/
+            : /recipient outside mandate/;
     }
 
     try {
@@ -346,6 +362,8 @@ export class LocalDemoSession {
       phase: this.paymentTxId ? 'paid' : this.proposal ? 'proposed' : 'ready',
       owner: {
         maxPerPayment: MAX_PER_PAYMENT.toString(),
+        maxTotalSpend: MAX_TOTAL_SPEND.toString(),
+        remainingPrivateBudget: (MAX_TOTAL_SPEND - ledger.cumulative_spend).toString(),
         allowedRecipientAlias: 'vendor',
         allowedRecipient: ready.vendorAddressHex,
         initialBudget: INITIAL_BUDGET.toString(),
@@ -364,6 +382,7 @@ export class LocalDemoSession {
         policyCommitment: bytesToHex(ledger.policy_commitment),
         vaultBalance,
         paymentCount: ledger.payment_count.toString(),
+        cumulativeSpend: ledger.cumulative_spend.toString(),
         usedNullifiers: ledger.used_nullifiers.size().toString(),
         paymentReceipts: ledger.payment_receipts.size().toString(),
       },

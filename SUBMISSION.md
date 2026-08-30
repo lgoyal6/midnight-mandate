@@ -17,11 +17,11 @@ Midnight Mandate is a contract-custodied NIGHT vault for AI-agent payments. An a
 
 ## What it does
 
-An owner privately configures a maximum per-payment amount and one approved recipient, then deposits test NIGHT into a Compact contract. The public ledger receives only a commitment to that policy.
+An owner privately configures a maximum per-payment amount, a lifetime cumulative ceiling, and one approved recipient, then deposits test NIGHT into a Compact contract. The public ledger receives only a commitment to that policy.
 
 An AI adapter turns a natural-language instruction into a tightly constrained proposal: amount, allow-listed recipient alias, and purpose. Deterministic code—not the model—selects the actual address, network, contract, token color, nonce, and request hash.
 
-When the agent requests payment, `agent_pay` opens the committed policy through private witnesses, verifies the cap and recipient, checks a replay nullifier and vault balance, and sends the exact checked amount to the checked recipient in the same transaction. An over-cap, wrong-recipient, replayed, malformed, or underfunded request fails without moving funds or advancing contract state.
+When the agent requests payment, `agent_pay` opens the committed policy through private witnesses, verifies both caps and the recipient, checks a replay nullifier and vault balance, and sends the exact checked amount to the checked recipient in the same transaction. An over-cap, cumulative-budget, wrong-recipient, replayed, malformed, or underfunded request fails without moving funds or advancing contract state.
 
 ## How we built it
 
@@ -39,10 +39,10 @@ The prototype deliberately does not claim private settlement: successful amount 
 
 ## Verified evidence
 
-- Compact simulator: 10/10 tests passed.
+- Compact simulator: 11/11 tests passed.
 - Proposal authority boundary: 12/12 tests passed.
 - Real local proof/payment: vault `50 → 45`, vendor `+5`.
-- Real negative paths: over-cap, wrong-recipient, and replay all rejected with unchanged balances and state.
+- Real negative paths: over-cap, cumulative-budget, wrong-recipient, and replay all rejected with unchanged balances and state.
 - Fresh-clone reproduction: frozen install, full verification, and one-command smoke all passed from commit `c27c516`.
 - Clean-clone payment transaction: `009146edb6f8d4564e80461032096a21a5f6a004af74eb282d094079b544630e3e` on the local development network.
 - Preprod: network and runner verified, but no deployment is claimed without a team-owned funded test wallet.
@@ -73,7 +73,7 @@ We also learned that UI separation is not sufficient privacy evidence: the netwo
 
 ## What's next
 
-The next contract revision adds cumulative and epoch budgets, expiry, rotation/revocation, dynamic private merchant sets, and shielded payout. The broader direction is a reusable private-mandate SDK: agents receive narrowly scoped capabilities for payments and tools without publishing a user's complete policy or receiving unrestricted wallet authority.
+The next contract revision turns the lifetime cumulative ceiling into epoch/day budgets and adds expiry, rotation/revocation, dynamic private merchant sets, and shielded payout. The broader direction is a reusable private-mandate SDK: agents receive narrowly scoped capabilities for payments and tools without publishing a user's complete policy or receiving unrestricted wallet authority.
 
 ## Built with
 
@@ -91,7 +91,7 @@ Show: title and the owner/agent/observer interface.
 
 ### 0:10–0:27 — private rule, public commitment
 
-> The owner privately sets vendor A and a ten-test-NIGHT cap. The outside observer sees only a commitment. This version keeps the mandate private, while successful unshielded settlement is public.
+> The owner privately sets vendor A, ten per payment, and twelve total. The outside observer sees only a commitment. This version keeps the mandate private, while successful unshielded settlement and running spend are public.
 
 Show: owner view, then `/observer`. Do not reveal any wallet seed or secret.
 
@@ -101,21 +101,21 @@ Show: owner view, then `/observer`. Do not reveal any wallet seed or secret.
 
 Show: create proposal, select **Prove & pay**, then the transaction ID and balances `50 → 45`, vendor `+5`. Trim only inactive proof wait; do not splice a different request into the success.
 
-### 0:55–1:18 — cap attack
+### 0:55–1:23 — two different budget attacks
 
-> An eleven-NIGHT request exceeds the hidden cap. The real contract rejects it, no receipt is added, and both balances stay unchanged.
+> Eleven exceeds the hidden per-payment cap. Then eight is individually valid, but the earlier five plus eight exceeds the hidden cumulative ceiling. The real contract rejects both; no receipt is added and balances stay unchanged.
 
-Show: **Over cap** and `Rejected · zero balance movement`.
+Show: **Spend 11 NIGHT**, then **Spend 8 more NIGHT**, each ending in `Rejected · zero balance movement`.
 
-### 1:18–1:35 — recipient and replay attacks
+### 1:23–1:37 — recipient and replay defenses
 
 > Changing the recipient also fails. Reusing the successful nonce fails too, so one valid instruction cannot become a different or repeated payment.
 
 Show: **Wrong recipient**, then **Replay**. Keep the frozen count and balances visible.
 
-### 1:35–1:52 — distinction and future
+### 1:37–1:52 — distinction and future
 
-> Midnight Mandate combines private policy with contract custody and puts the payment inside the proof-checked call. Next, the mandate becomes a reusable capability with cumulative budgets, expiry, revocation, sponsored fees, and selective audit for agent commerce.
+> Midnight Mandate combines private policy with contract custody and puts the payment inside the proof-checked call. Next, the mandate becomes a reusable capability with epoch budgets, expiry, revocation, sponsored fees, and selective audit for agent commerce.
 
 Show: the three-step architecture and roadmap, then stop recording.
 

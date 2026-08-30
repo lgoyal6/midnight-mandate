@@ -20,6 +20,7 @@ import {
 
 const DEPOSIT = 50n;
 const CAP = 10n;
+const TOTAL_CAP = 12n;
 const PAYMENT = 5n;
 
 export type PreprodEvidence = {
@@ -33,6 +34,7 @@ export type PreprodEvidence = {
   vaultAfterPayment: string;
   recipientBalanceBeforePayment: string;
   recipientBalanceAfterPayment: string;
+  cumulativeSpendAfterPayment: string;
   recordedAt: string;
 };
 
@@ -116,6 +118,7 @@ export async function runPreprodSmoke(options?: {
       {
         policySecret: randomBytes32(),
         maxPerPayment: CAP,
+        maxTotalSpend: TOTAL_CAP,
         allowedRecipient: recipient,
       },
     );
@@ -157,6 +160,7 @@ export async function runPreprodSmoke(options?: {
       recipientAfterPayment - recipientBeforePayment === PAYMENT,
       'recipient must receive the exact payment',
     );
+    invariant(paid.cumulative_spend === PAYMENT, 'cumulative spend must equal the payment');
 
     const evidence: PreprodEvidence = {
       network: 'preprod',
@@ -169,6 +173,7 @@ export async function runPreprodSmoke(options?: {
       vaultAfterPayment: (DEPOSIT - PAYMENT).toString(),
       recipientBalanceBeforePayment: recipientBeforePayment.toString(),
       recipientBalanceAfterPayment: recipientAfterPayment.toString(),
+      cumulativeSpendAfterPayment: paid.cumulative_spend.toString(),
       recordedAt: new Date().toISOString(),
     };
     if (options?.artifactPath) {

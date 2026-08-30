@@ -67,7 +67,7 @@ h2 { margin: 0; font-size: 22px; letter-spacing: -.035em; }
 .rule-card span, .proposal-card span, .ledger-list span { color: var(--muted); font-size: 11px; }
 .rule-card strong, .proposal-card strong, .ledger-list strong { text-align: right; font-size: 12px; }
 .proposal-card code, .ledger-list code { color: #d7ddd4; font-size: 10px; }
-.balance-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 28px; }
+.balance-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 28px; }
 .metric { padding: 14px; background: #0c0f0d; border: 1px solid #212621; }
 .metric span { display: block; margin-bottom: 8px; color: var(--muted); font-size: 10px; }
 .metric strong { color: var(--green); font: 500 16px 'DM Mono'; }
@@ -87,7 +87,7 @@ textarea:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(185,255,
 .section-title h2, .evidence-section h2 { margin-top: 9px; font-size: 30px; }
 .verified-pill { padding: 8px 10px; color: var(--muted); border: 1px solid var(--line); font: 500 10px 'DM Mono'; text-transform: uppercase; }
 .verified-pill.success { color: var(--green); border-color: #496a29; background: #15200e; }
-.attack-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.attack-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .attack-card { display: flex; align-items: center; gap: 16px; padding: 20px; text-align: left; color: var(--ink); border: 1px solid #3a2d2b; background: #171312; }
 .attack-card:hover:not(:disabled) { border-color: var(--red); transform: translateY(-1px); }
 .attack-card.rejected { border-color: #3f5d27; background: #11170e; }

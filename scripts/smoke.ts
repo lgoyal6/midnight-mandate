@@ -24,4 +24,5 @@ console.log(
 console.log(
   `vendor_delta=+${BigInt(evidence.vendorAfterPayment) - BigInt(evidence.vendorBeforePayment)}`,
 );
+console.log(`cumulative_spend=${evidence.cumulativeSpendAfterPayment}`);
 console.log(`rejected=${evidence.rejected.join(',')}`);

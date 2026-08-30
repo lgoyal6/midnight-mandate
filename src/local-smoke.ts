@@ -25,6 +25,7 @@ const VENDOR_LOCAL_SEED =
   '0000000000000000000000000000000000000000000000000000000000000002';
 const DEPOSIT = 50n;
 const CAP = 10n;
+const TOTAL_CAP = 12n;
 const VALID_AMOUNT = 5n;
 
 export type LocalSmokeEvidence = {
@@ -38,6 +39,7 @@ export type LocalSmokeEvidence = {
   vaultAfterPayment: string;
   vendorBeforePayment: string;
   vendorAfterPayment: string;
+  cumulativeSpendAfterPayment: string;
   rejected: string[];
   recordedAt: string;
 };
@@ -47,12 +49,13 @@ function invariant(condition: unknown, message: string): asserts condition {
 }
 
 function sameState(
-  left: { balance: bigint; count: bigint; nullifiers: bigint },
-  right: { balance: bigint; count: bigint; nullifiers: bigint },
+  left: { balance: bigint; count: bigint; cumulativeSpend: bigint; nullifiers: bigint },
+  right: { balance: bigint; count: bigint; cumulativeSpend: bigint; nullifiers: bigint },
 ): boolean {
   return (
     left.balance === right.balance &&
     left.count === right.count &&
+    left.cumulativeSpend === right.cumulativeSpend &&
     left.nullifiers === right.nullifiers
   );
 }
@@ -145,6 +148,7 @@ export async function runLocalSmoke(options?: {
       {
         policySecret,
         maxPerPayment: CAP,
+        maxTotalSpend: TOTAL_CAP,
         allowedRecipient: vendorAddress,
       },
     );
@@ -184,6 +188,10 @@ export async function runLocalSmoke(options?: {
       'vault must decrease by the exact payment amount',
     );
     invariant(paidLedger.payment_count === 1n, 'payment counter must increment once');
+    invariant(
+      paidLedger.cumulative_spend === VALID_AMOUNT,
+      'cumulative spend must equal the successful payment',
+    );
 
     const vendorAfter = await waitForWalletBalance(
       vendor,
@@ -207,6 +215,7 @@ export async function runLocalSmoke(options?: {
     const stable = {
       balance: paidLedger.night_balances.lookup(color),
       count: paidLedger.payment_count,
+      cumulativeSpend: paidLedger.cumulative_spend,
       nullifiers: paidLedger.used_nullifiers.size(),
     };
 
@@ -221,6 +230,18 @@ export async function runLocalSmoke(options?: {
         nonce: randomBytes32(),
       }),
       /private payment cap exceeded/,
+    );
+    await expectRejected(
+      logger,
+      'cumulative-budget',
+      client.pay({
+        color,
+        amount: TOTAL_CAP - VALID_AMOUNT + 1n,
+        recipient: vendorAddress,
+        requestCommitment,
+        nonce: randomBytes32(),
+      }),
+      /private cumulative budget exceeded/,
     );
     await expectRejected(
       logger,
@@ -253,6 +274,7 @@ export async function runLocalSmoke(options?: {
         {
           balance: afterAttacks.night_balances.lookup(color),
           count: afterAttacks.payment_count,
+          cumulativeSpend: afterAttacks.cumulative_spend,
           nullifiers: afterAttacks.used_nullifiers.size(),
         },
         stable,
@@ -275,7 +297,8 @@ export async function runLocalSmoke(options?: {
       vaultAfterPayment: (DEPOSIT - VALID_AMOUNT).toString(),
       vendorBeforePayment: vendorBalanceBefore.toString(),
       vendorAfterPayment: vendorBalanceAfter.toString(),
-      rejected: ['over-cap', 'wrong-recipient', 'replay'],
+      cumulativeSpendAfterPayment: paidLedger.cumulative_spend.toString(),
+      rejected: ['over-cap', 'cumulative-budget', 'wrong-recipient', 'replay'],
       recordedAt: new Date().toISOString(),
     };
 

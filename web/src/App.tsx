@@ -18,7 +18,12 @@ const EMPTY: DemoSnapshot = {
   },
   observer: null,
   vendorBalance: null,
-  attacks: { 'over-cap': 'not-run', 'wrong-recipient': 'not-run', replay: 'not-run' },
+  attacks: {
+    'over-cap': 'not-run',
+    'cumulative-budget': 'not-run',
+    'wrong-recipient': 'not-run',
+    replay: 'not-run',
+  },
   events: [],
 };
 
@@ -93,8 +98,8 @@ function CommandCenter() {
           <div className="eyebrow"><span className="pulse" /> Midnight local devnet · live proof path</div>
           <h1>Private rules.<br /><em>Atomic</em> agent payments.</h1>
           <p>
-            The agent proposes. Midnight proves the hidden cap and recipient rule. The same
-            contract call releases the funds—or rejects the action without moving anything.
+            The agent proposes. Midnight proves hidden per-payment, cumulative, and recipient
+            rules. The same contract call releases funds—or rejects without moving anything.
           </p>
         </div>
         <div className={`status-orb phase-${state.phase}`}>
@@ -128,12 +133,14 @@ function CommandCenter() {
           <p className="panel-copy">The policy opening stays in local private state. It never appears in the observer payload.</p>
           <div className="rule-card">
             <div><span>Max per payment</span><strong>{state.owner?.maxPerPayment ?? '10'} NIGHT</strong></div>
+            <div><span>Max cumulative spend</span><strong>{state.owner?.maxTotalSpend ?? '12'} NIGHT</strong></div>
             <div><span>Allowed recipient</span><strong>{state.owner?.allowedRecipientAlias ?? 'vendor only'}</strong></div>
             <div><span>Policy secret</span><strong>local only · hidden</strong></div>
           </div>
           <div className="balance-row">
-            <Metric label="Initial budget" value={`${state.owner?.initialBudget ?? '—'} NIGHT`} />
+            <Metric label="Deposited" value={`${state.owner?.initialBudget ?? '—'} NIGHT`} />
             <Metric label="Vault now" value={`${state.owner?.vaultBalance ?? '—'} NIGHT`} />
+            <Metric label="Private allowance left" value={`${state.owner?.remainingPrivateBudget ?? '—'} NIGHT`} />
           </div>
         </article>
 
@@ -186,9 +193,10 @@ function CommandCenter() {
           <div className="ledger-list">
             <div><span>Policy commitment</span><code>{short(state.observer?.policyCommitment, 8)}</code></div>
             <div><span>Successful payments</span><strong>{state.observer?.paymentCount ?? '—'}</strong></div>
+            <div><span>Cumulative public spend</span><strong>{state.observer?.cumulativeSpend ?? '—'} NIGHT</strong></div>
             <div><span>Used nullifiers</span><strong>{state.observer?.usedNullifiers ?? '—'}</strong></div>
             <div><span>Public vault balance</span><strong>{state.observer?.vaultBalance ?? '—'} NIGHT</strong></div>
-            <div><span>Hidden from this view</span><strong className="safe">cap · preset recipient · secret</strong></div>
+            <div><span>Hidden from this view</span><strong className="safe">both caps · preset recipient · secret</strong></div>
           </div>
         </article>
       </section>
@@ -196,11 +204,12 @@ function CommandCenter() {
       <section className="attack-section">
         <div className="section-title">
           <div><span className="eyebrow">Adversarial proof</span><h2>Try to break the mandate</h2></div>
-          <span className={allRejected ? 'verified-pill success' : 'verified-pill'}>{allRejected ? '3/3 blocked' : 'No mocked success'}</span>
+          <span className={allRejected ? 'verified-pill success' : 'verified-pill'}>{allRejected ? '4/4 blocked' : 'No mocked success'}</span>
         </div>
         <div className="attack-grid">
           {([
             ['over-cap', 'Spend 11 NIGHT', 'Private cap is 10'],
+            ['cumulative-budget', 'Spend 8 more NIGHT', '5 + 8 exceeds hidden total of 12'],
             ['wrong-recipient', 'Pay attacker', 'Recipient is precommitted'],
             ['replay', 'Replay payment', 'Nonce was already consumed'],
           ] as const).map(([kind, title, detail]) => (
@@ -280,6 +289,7 @@ function ObserverPage() {
             <div><span>Policy commitment</span><code>{short(state.observer?.policyCommitment, 14)}</code></div>
             <div><span>Vault balance</span><strong>{state.observer?.vaultBalance ?? '—'} NIGHT</strong></div>
             <div><span>Successful payments</span><strong>{state.observer?.paymentCount ?? '—'}</strong></div>
+            <div><span>Cumulative spend</span><strong>{state.observer?.cumulativeSpend ?? '—'} NIGHT</strong></div>
             <div><span>Nullifiers / receipts</span><strong>{state.observer?.usedNullifiers ?? '—'} / {state.observer?.paymentReceipts ?? '—'}</strong></div>
             <div><span>Vendor public balance</span><strong>{state.vendorBalance ?? '—'} NIGHT</strong></div>
           </div>

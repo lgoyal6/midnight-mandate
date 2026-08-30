@@ -83,8 +83,8 @@ const server = createServer(async (request, response) => {
     }
     if (method === 'POST' && pathname === '/api/attack') {
       const body = await readJson(request);
-      if (!['over-cap', 'wrong-recipient', 'replay'].includes(String(body.kind))) {
-        throw new Error('kind must be over-cap, wrong-recipient, or replay');
+      if (!['over-cap', 'cumulative-budget', 'wrong-recipient', 'replay'].includes(String(body.kind))) {
+        throw new Error('kind must be over-cap, cumulative-budget, wrong-recipient, or replay');
       }
       json(
         response,

@@ -15,6 +15,7 @@ beforeEach(() => {
   policy = {
     policySecret: randomBytes32(),
     maxPerPayment: 10n,
+    maxTotalSpend: 12n,
     allowedRecipient: ALLOWED,
   };
   sim = new MandateSimulator(policy);
@@ -31,6 +32,7 @@ function snapshot() {
       ? state.night_balances.lookup(NIGHT)
       : 0n,
     count: state.payment_count,
+    cumulativeSpend: state.cumulative_spend,
     nullifiers: state.used_nullifiers.size(),
   };
 }
@@ -38,21 +40,27 @@ function snapshot() {
 describe('private policy primitives', () => {
   it('derives stable policy commitments and nullifiers', () => {
     const nonce = hexToBytes32('01');
-    expect(bytesToHex(policyCommitment(policy.policySecret, 10n, ALLOWED))).toBe(
-      bytesToHex(policyCommitment(policy.policySecret, 10n, ALLOWED)),
+    expect(bytesToHex(policyCommitment(policy.policySecret, 10n, 12n, ALLOWED))).toBe(
+      bytesToHex(policyCommitment(policy.policySecret, 10n, 12n, ALLOWED)),
     );
     expect(bytesToHex(paymentNullifier(policy.policySecret, nonce))).toBe(
       bytesToHex(paymentNullifier(policy.policySecret, nonce)),
     );
   });
 
-  it('binds secret, cap, and recipient', () => {
+  it('binds secret, both caps, and recipient', () => {
     const baseline = bytesToHex(
-      policyCommitment(policy.policySecret, policy.maxPerPayment, ALLOWED),
+      policyCommitment(
+        policy.policySecret,
+        policy.maxPerPayment,
+        policy.maxTotalSpend,
+        ALLOWED,
+      ),
     );
-    expect(bytesToHex(policyCommitment(randomBytes32(), 10n, ALLOWED))).not.toBe(baseline);
-    expect(bytesToHex(policyCommitment(policy.policySecret, 11n, ALLOWED))).not.toBe(baseline);
-    expect(bytesToHex(policyCommitment(policy.policySecret, 10n, OTHER))).not.toBe(baseline);
+    expect(bytesToHex(policyCommitment(randomBytes32(), 10n, 12n, ALLOWED))).not.toBe(baseline);
+    expect(bytesToHex(policyCommitment(policy.policySecret, 11n, 12n, ALLOWED))).not.toBe(baseline);
+    expect(bytesToHex(policyCommitment(policy.policySecret, 10n, 13n, ALLOWED))).not.toBe(baseline);
+    expect(bytesToHex(policyCommitment(policy.policySecret, 10n, 12n, OTHER))).not.toBe(baseline);
   });
 });
 
@@ -69,6 +77,7 @@ describe('contract-custodied mandate enforcement', () => {
     const nullifier = paymentNullifier(policy.policySecret, nonce);
     expect(state.night_balances.lookup(NIGHT)).toBe(45n);
     expect(state.payment_count).toBe(1n);
+    expect(state.cumulative_spend).toBe(5n);
     expect(state.used_nullifiers.member(nullifier)).toBe(true);
     expect(bytesToHex(state.payment_receipts.lookup(nullifier))).toBe(bytesToHex(REQUEST));
   });
@@ -76,6 +85,16 @@ describe('contract-custodied mandate enforcement', () => {
   it('accepts an amount exactly at the cap', () => {
     sim.call('agent_pay', NIGHT, 10n, recipient(ALLOWED), REQUEST, randomBytes32());
     expect(sim.ledger().night_balances.lookup(NIGHT)).toBe(40n);
+    expect(sim.ledger().cumulative_spend).toBe(10n);
+  });
+
+  it('rejects a fresh individually valid payment that exceeds the cumulative budget', () => {
+    sim.call('agent_pay', NIGHT, 5n, recipient(ALLOWED), REQUEST, randomBytes32());
+    const before = snapshot();
+    expect(() =>
+      sim.call('agent_pay', NIGHT, 8n, recipient(ALLOWED), REQUEST, randomBytes32()),
+    ).toThrow(/private cumulative budget exceeded/);
+    expect(snapshot()).toEqual(before);
   });
 
   it('rejects over-cap payment without changing state', () => {
@@ -121,7 +140,7 @@ describe('contract-custodied mandate enforcement', () => {
       sim.call('agent_pay', NIGHT, 51n, recipient(ALLOWED), REQUEST, randomBytes32()),
     ).toThrow(/private payment cap exceeded/);
 
-    const highCap = { ...policy, maxPerPayment: 100n };
+    const highCap = { ...policy, maxPerPayment: 100n, maxTotalSpend: 100n };
     const highCapSim = new MandateSimulator(highCap);
     highCapSim.call('deposit_night', NIGHT, 50n);
     expect(() =>
@@ -141,9 +160,10 @@ describe('public projection', () => {
   it('contains no clear policy cap, recipient, or secret fields', () => {
     const publicKeys = Object.keys(sim.ledger()).sort();
     expect(publicKeys).toContain('policy_commitment');
+    expect(publicKeys).toContain('cumulative_spend');
     expect(publicKeys).not.toContain('max_per_payment');
+    expect(publicKeys).not.toContain('max_total_spend');
     expect(publicKeys).not.toContain('allowed_recipient');
     expect(publicKeys).not.toContain('policy_secret');
   });
 });
-

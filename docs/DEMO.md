@@ -22,7 +22,7 @@ Open the owner console at `http://127.0.0.1:5173` and public-only view at `http:
 
 ### 0:12–0:30 — Privacy boundary
 
-Initialize the vault. Show owner cap `10`, recipient `vendor`, and budget `50`. Switch briefly to `/observer`.
+Initialize the vault. Show owner per-payment cap `10`, cumulative ceiling `12`, recipient `vendor`, and deposit `50`. Switch briefly to `/observer`.
 
 “The public endpoint receives only a policy commitment and public custody state. This prototype uses unshielded settlement, so a successful amount and recipient become public.”
 
@@ -36,21 +36,21 @@ Create the typed proposal, then select **Prove & pay**.
 
 Show transaction ID, vault `50 → 45`, and vendor `+5`.
 
-### 0:58–1:28 — Break it
+### 0:58–1:30 — Break it
 
-Run **Spend 11 NIGHT**, **Pay attacker**, and **Replay payment**.
+Run **Spend 11 NIGHT**, then **Spend 8 more NIGHT** after the valid 5. If time permits, flash the already-verified recipient/replay cards too.
 
-“The public did not learn the cap beforehand, but Midnight enforces it. A different recipient and a reused nonce also fail. Every denial leaves balances, payment count, and nullifier count unchanged.”
+“The public did not learn either ceiling beforehand. Eleven breaks the per-payment cap. Eight is individually valid, but five plus eight breaks the hidden cumulative limit. A different recipient and reused nonce fail too. Every denial leaves balances and state unchanged.”
 
-### 1:28–1:48 — Why Midnight
+### 1:30–1:49 — Why Midnight
 
 Show the three columns.
 
 “A private server rule requires trusting the server. A transparent contract reveals the policy. Midnight lets the vault verify the hidden mandate before releasing funds.”
 
-### 1:48–1:56 — Vision
+### 1:49–1:56 — Vision
 
-“Next, mandates become reusable private authority for agent commerce: cumulative budgets, expiry, merchant sets, sponsored execution, and selective audit.”
+“Next, mandates become reusable private authority for agent commerce: epoch budgets, expiry, merchant sets, sponsored execution, and selective audit.”
 
 ## Recording integrity
 

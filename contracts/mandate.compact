@@ -5,6 +5,7 @@ import CompactStandardLibrary;
 // Private values supplied by the delegated runtime during proof generation.
 witness policy_secret(): Bytes<32>;
 witness max_per_payment(): Uint<128>;
+witness max_total_spend(): Uint<128>;
 witness allowed_recipient(): Bytes<32>;
 
 // Only commitments, replay nullifiers, receipts, and aggregate counters are
@@ -13,17 +14,20 @@ export ledger policy_commitment: Bytes<32>;
 export ledger used_nullifiers: Set<Bytes<32>>;
 export ledger payment_receipts: Map<Bytes<32>, Bytes<32>>;
 export ledger payment_count: Uint<64>;
+export ledger cumulative_spend: Uint<128>;
 export ledger night_balances: Map<Bytes<32>, Uint<128>>;
 
 export pure circuit derive_policy_commitment(
   secret: Bytes<32>,
   cap: Uint<128>,
+  total_cap: Uint<128>,
   recipient: Bytes<32>,
 ): Bytes<32> {
-  return persistentHash<[Bytes<32>, Bytes<32>, Uint<128>, Bytes<32>]>([
-    pad(32, "midnight-mandate:policy:v1"),
+  return persistentHash<[Bytes<32>, Bytes<32>, Uint<128>, Uint<128>, Bytes<32>]>([
+    pad(32, "midnight-mandate:policy:v2"),
     secret,
     cap,
+    total_cap,
     recipient,
   ]);
 }
@@ -42,6 +46,7 @@ export pure circuit derive_payment_nullifier(
 constructor(initial_policy_commitment: Bytes<32>) {
   policy_commitment = disclose(initial_policy_commitment);
   payment_count = 0 as Uint<64>;
+  cumulative_spend = 0 as Uint<128>;
 }
 
 circuit credit_night(color: Bytes<32>, amount: Uint<128>): [] {
@@ -86,15 +91,21 @@ export circuit agent_pay(
 
   const secret = policy_secret();
   const cap = max_per_payment();
+  const total_cap = max_total_spend();
   const allowed = allowed_recipient();
 
   assert(
-    derive_policy_commitment(secret, cap, allowed) == policy_commitment,
+    derive_policy_commitment(secret, cap, total_cap, allowed) == policy_commitment,
     "private policy does not open commitment"
   );
   assert(r.bytes == allowed, "recipient outside mandate");
   assert(a > (0 as Uint<128>), "payment amount must be positive");
   assert(a <= cap, "private payment cap exceeded");
+  assert(cumulative_spend <= total_cap, "invalid cumulative policy state");
+  assert(
+    a <= ((total_cap - cumulative_spend) as Uint<128>),
+    "private cumulative budget exceeded"
+  );
 
   const nullifier = disclose(derive_payment_nullifier(secret, nonce));
   assert(!used_nullifiers.member(nullifier), "payment nonce already used");
@@ -103,6 +114,7 @@ export circuit agent_pay(
   used_nullifiers.insert(nullifier);
   payment_receipts.insert(nullifier, receipt);
   payment_count = ((payment_count + (1 as Uint<64>)) as Uint<64>);
+  cumulative_spend = ((cumulative_spend + a) as Uint<128>);
 
   sendUnshielded(
     c,

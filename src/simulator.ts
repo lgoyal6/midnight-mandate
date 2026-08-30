@@ -16,6 +16,7 @@ const COIN_PUBLIC_KEY = '00'.repeat(32);
 export interface Policy {
   policySecret: Uint8Array;
   maxPerPayment: bigint;
+  maxTotalSpend: bigint;
   allowedRecipient: Uint8Array;
 }
 
@@ -32,7 +33,12 @@ export class MandateSimulator {
     );
     const initial = this.contract.initialState(
       constructorContext,
-      policyCommitment(policy.policySecret, policy.maxPerPayment, policy.allowedRecipient),
+      policyCommitment(
+        policy.policySecret,
+        policy.maxPerPayment,
+        policy.maxTotalSpend,
+        policy.allowedRecipient,
+      ),
     );
     this.ctx = createCircuitContext(
       this.address,
@@ -57,4 +63,3 @@ export class MandateSimulator {
     return ledger(this.ctx.currentQueryContext.state);
   }
 }
-

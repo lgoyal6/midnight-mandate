@@ -7,12 +7,12 @@ export type { Ledger };
 export function policyCommitment(
   secret: Uint8Array,
   cap: bigint,
+  totalCap: bigint,
   recipient: Uint8Array,
 ): Uint8Array {
-  return MandateModule.pureCircuits.derive_policy_commitment(secret, cap, recipient);
+  return MandateModule.pureCircuits.derive_policy_commitment(secret, cap, totalCap, recipient);
 }
 
 export function paymentNullifier(secret: Uint8Array, nonce: Uint8Array): Uint8Array {
   return MandateModule.pureCircuits.derive_payment_nullifier(secret, nonce);
 }
-

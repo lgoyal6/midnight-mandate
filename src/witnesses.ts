@@ -5,17 +5,20 @@ import { bytesToHex, hexToBytes } from './wallet/hex.js';
 export interface MandatePrivateState {
   policySecretHex: string;
   maxPerPayment: string;
+  maxTotalSpend: string;
   allowedRecipientHex: string;
 }
 
 export function privateStateFromPolicy(policy: {
   policySecret: Uint8Array;
   maxPerPayment: bigint;
+  maxTotalSpend: bigint;
   allowedRecipient: Uint8Array;
 }): MandatePrivateState {
   return {
     policySecretHex: bytesToHex(policy.policySecret),
     maxPerPayment: policy.maxPerPayment.toString(),
+    maxTotalSpend: policy.maxTotalSpend.toString(),
     allowedRecipientHex: bytesToHex(policy.allowedRecipient),
   };
 }
@@ -30,9 +33,11 @@ export function makeWitnesses() {
     max_per_payment(ctx: Ctx): [MandatePrivateState, bigint] {
       return [ctx.privateState, BigInt(ctx.privateState.maxPerPayment)];
     },
+    max_total_spend(ctx: Ctx): [MandatePrivateState, bigint] {
+      return [ctx.privateState, BigInt(ctx.privateState.maxTotalSpend)];
+    },
     allowed_recipient(ctx: Ctx): [MandatePrivateState, Uint8Array] {
       return [ctx.privateState, hexToBytes(ctx.privateState.allowedRecipientHex)];
     },
   };
 }
-

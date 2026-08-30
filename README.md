@@ -2,15 +2,15 @@
 
 **Private spending rules. Atomic agent payments.**
 
-Midnight Mandate is a contract-custodied NIGHT vault for delegated AI-agent payments. An agent may propose a payment, but the vault releases funds only when the same Compact circuit proves that the exact amount and recipient satisfy a privately committed mandate.
+Midnight Mandate is a contract-custodied NIGHT vault for delegated AI-agent payments. An agent may propose a payment, but the vault releases funds only when the same Compact circuit proves that the exact amount, recipient, and running spend satisfy a privately committed mandate.
 
-![Midnight Mandate owner, agent, and public observer demo](artifacts/ui-full.png)
+![Midnight Mandate privately bounded cumulative budget rejection](artifacts/ui-cumulative-rejected.png)
 
 ## The 30-second version
 
-A normal server can hide a spending policy but can secretly bypass it. A transparent smart contract can enforce a policy but publishes it. Midnight Mandate keeps the cap and preconfigured recipient off the public ledger while proving that each withdrawal follows them.
+A normal server can hide a spending policy but can secretly bypass it. A transparent smart contract can enforce a policy but publishes it. Midnight Mandate keeps both the per-payment and cumulative caps plus the preconfigured recipient off the public ledger while proving that each withdrawal follows them.
 
-The contract—not the agent—holds the funds. `agent_pay` opens the private policy through witnesses, checks the amount and recipient, consumes a replay nullifier, debits the vault, and calls `sendUnshielded` in one transaction. If any check fails, no payment or contract-state mutation occurs.
+The contract—not the agent—holds the funds. `agent_pay` opens the private policy through witnesses, checks the amount, recipient, and cumulative spend, consumes a replay nullifier, debits the vault, and calls `sendUnshielded` in one transaction. If any check fails, no payment or contract-state mutation occurs.
 
 This prototype provides **private mandate enforcement with public unshielded settlement**. It does not claim private payment amounts or recipients.
 
@@ -19,10 +19,10 @@ This prototype provides **private mandate enforcement with public unshielded set
 | Evidence | Result |
 | --- | --- |
 | Compact | Compiler `0.31.1`, language `0.23`; two impure circuits compile |
-| Simulator | 10/10 policy, custody, replay, rejection, and public-projection tests pass |
+| Simulator | 11/11 policy, custody, cumulative-budget, replay, rejection, and public-projection tests pass |
 | Proposal boundary | 12/12 strict schema, alias, amount, hash, and client-binding tests pass |
 | Local settlement | Vault `50 → 45`; vendor balance `+5` in a real proved transaction |
-| Attacks | Over-cap, wrong-recipient, and replay reject with unchanged balances/state |
+| Attacks | Over-cap, cumulative-budget, wrong-recipient, and replay reject with unchanged balances/state |
 | Reproducibility | `yarn demo:smoke` compiles, tests, deploys, funds, pays, and attacks in one command |
 | UI | Real API flow and browser rendering verified; no Vite overlay or console errors |
 | Public projection | Isolated `/observer` API/DOM contains no cap, preset address, policy secret, or instruction |
@@ -36,12 +36,12 @@ The frozen install, full verification gate, and smoke test were also rerun succe
 
 ```text
 Owner private state              Agent proposal                 Public ledger
-secret, cap, recipient           amount, alias, purpose         policy commitment
+secret, both caps, recipient     amount, alias, purpose         policy commitment
         │                                │                       nullifiers/receipts
-        └──── witness opening ───────────┴──────┐                payment counter
+        └──── witness opening ───────────┴──────┐                count/cumulative spend
                                                 ▼
                               Compact agent_pay circuit
-                         commitment + recipient + cap + replay
+                    commitment + recipient + both caps + replay
                                                 │
                                       same checked values
                                                 ▼
@@ -58,12 +58,14 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/PRIVACY.md`](docs/PRI
 | --- | --- | --- |
 | Policy secret | Yes | No |
 | Maximum per payment | Yes | No |
+| Maximum cumulative spend | Yes | No |
 | Preconfigured recipient before execution | Yes | No |
 | Policy commitment | Derived locally | Yes |
 | Successful amount and recipient | Yes | Yes—settlement is unshielded |
 | Natural-language instruction | Yes | No; only its request hash is recorded |
 | Replay nullifier and receipt | Derived locally | Yes |
 | Number of successful payments | Yes | Yes |
+| Running cumulative spend | Yes | Yes—successful amounts are already public |
 
 The delegated runtime supplies witnesses and therefore knows the mandate. The privacy claim concerns the public ledger and outside observers, not secrecy from the machine performing the proof.
 
@@ -103,7 +105,8 @@ A valid run ends with:
 MIDNIGHT_MANDATE_SMOKE_PASS
 vault_delta=-5
 vendor_delta=+5
-rejected=over-cap,wrong-recipient,replay
+cumulative_spend=5
+rejected=over-cap,cumulative-budget,wrong-recipient,replay
 ```
 
 The smoke command exits nonzero if compilation/tests fail, the real payment does not move exact balances, or any attack unexpectedly succeeds.
@@ -119,7 +122,7 @@ Open [http://127.0.0.1:5173](http://127.0.0.1:5173), then:
 1. Select **Initialize real vault** and wait for deploy/fund confirmation.
 2. Create the default deterministic typed proposal.
 3. Select **Prove & pay** and confirm vault `50 → 45` and vendor `+5`.
-4. Run all three attack buttons; each must say `Rejected · zero balance movement`.
+4. Run all four attack buttons; each must say `Rejected · zero balance movement`. The aggregate attack requests 8 after spending 5: it is under the 10-per-payment cap but exceeds the hidden total of 12.
 5. Open [http://127.0.0.1:5173/observer](http://127.0.0.1:5173/observer) to inspect the isolated public-only projection.
 
 The deterministic adapter is the reliable demo path. **Live AI · $0.01** uses a schema-guided model through the authenticated Zero runner and fails closed if that provider is unavailable; it never changes the Compact authority boundary.
@@ -141,10 +144,10 @@ The deterministic adapter is the reliable demo path. **Live AI · $0.01** uses a
 
 | Project | Existing contribution | Midnight Mandate distinction |
 | --- | --- | --- |
-| [Aegis](https://github.com/1shanpanta/aegis) | Private cap/whitelist policy proofs and reject paths | Aegis explicitly is not the vault; Mandate couples the proof to contract-held funds |
+| [Aegis](https://github.com/1shanpanta/aegis) | Private cap/whitelist/running-total policy proofs and reject paths | Aegis explicitly is not the vault; Mandate couples the proof to contract-held funds and atomic settlement |
 | [MidPilot](https://github.com/ANPAN27/MidPilot) | Natural-language payment UX and wallet transfer path | Its active policy check is local; Mandate enforces policy inside the withdrawal circuit |
 | [Latch](https://github.com/CipherCollective/Latch) | Strong private one-use capability framing | Its repository discloses that real proof/receipt/transaction operations remain pending |
-| [Passport](https://github.com/midnightntwrk/passport-demo) | Official contract custody and atomic grant withdrawal pattern | Prototype grant cap/color are public and recipient unrestricted; Mandate privately commits cap and recipient |
+| [Passport](https://github.com/midnightntwrk/passport-demo) | Official contract custody and atomic grant withdrawal pattern | Prototype grant cap/color are public and recipient unrestricted; Mandate privately commits both caps and recipient |
 | [Kaelix](https://github.com/kushwahaamar-dev/Kaelix) | Private AI guard plus compliance attestation | Mandate makes the proof causal by executing the protected payment itself |
 
 These comparisons describe the inspected public repositories, not claims about their future roadmaps.
@@ -152,9 +155,9 @@ These comparisons describe the inspected public repositories, not claims about t
 ## Known limitations
 
 - Successful settlement uses unshielded NIGHT, exposing amount and recipient.
-- One vault supports one immutable recipient and one maximum per-payment amount.
-- Repeated compliant requests can spend the full deposited balance; the deposit is the public total delegation bound.
-- No cumulative/day budget, expiry, policy rotation, revocation, recovery, multisig, or shielded payout yet.
+- One vault supports one immutable recipient, one maximum per-payment amount, and one lifetime cumulative ceiling.
+- The cumulative ceiling has no epoch/day reset. Funds deposited above that ceiling remain locked in this prototype because owner withdrawal is not implemented.
+- No expiry, policy rotation, revocation, recovery, multisig, or shielded payout yet.
 - The proving runtime can read the policy witnesses.
 - This is prototype custody for test assets only—not audited production custody.
 - Local devnet is the verified reliability baseline. Preprod is not yet claimed.
@@ -165,6 +168,7 @@ These comparisons describe the inspected public repositories, not claims about t
 - [`docs/DEMO.md`](docs/DEMO.md) — two-minute recording path.
 - [`docs/PREPROD.md`](docs/PREPROD.md) — public-network runner and current human gate.
 - [`SUBMISSION.md`](SUBMISSION.md) — prepared Devpost copy, exact two-minute script, recording runbook, and public-release gate.
+- [`NEXT_STEPS.md`](NEXT_STEPS.md) — teammate onboarding, verified status, parallel work lanes, and integration rules.
 - [`UPSTREAM.md`](UPSTREAM.md) — vendor lineage and event-window originality.
 - [`evidence/`](evidence/) — sanitized, checked-in local receipts.
 

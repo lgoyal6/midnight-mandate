@@ -17,6 +17,12 @@ describe('Midnight Mandate local proof and payment', () => {
 
     expect(BigInt(evidence.vaultBeforePayment) - BigInt(evidence.vaultAfterPayment)).toBe(5n);
     expect(BigInt(evidence.vendorAfterPayment) - BigInt(evidence.vendorBeforePayment)).toBe(5n);
-    expect(evidence.rejected).toEqual(['over-cap', 'wrong-recipient', 'replay']);
+    expect(evidence.cumulativeSpendAfterPayment).toBe('5');
+    expect(evidence.rejected).toEqual([
+      'over-cap',
+      'cumulative-budget',
+      'wrong-recipient',
+      'replay',
+    ]);
   });
 });

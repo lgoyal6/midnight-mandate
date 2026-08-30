@@ -45,14 +45,14 @@ yarn demo:smoke
 This command:
 
 1. compiles Compact;
-2. runs 10 contract and 12 proposal tests;
+2. runs 11 contract and 12 proposal tests;
 3. type-checks the Node/client code;
 4. reuses or starts a compatible local Midnight node/indexer/proof stack;
 5. deploys a fresh vault;
 6. deposits 50 test NIGHT;
 7. sends 5 through `agent_pay`;
 8. checks exact vault/vendor deltas;
-9. runs over-cap, wrong-recipient, and replay attacks;
+9. runs over-cap, cumulative-budget, wrong-recipient, and replay attacks;
 10. exits zero only when all attacks fail without state/balance movement.
 
 ## Visual flow
@@ -61,7 +61,7 @@ This command:
 yarn demo:ui
 ```
 
-The first **Initialize real vault** click takes roughly 35–45 seconds locally because deployment/funding wait for confirmed blocks. Payment takes roughly 20 seconds. Rejection cases fail during proof/circuit construction and usually return quickly.
+The first **Initialize real vault** click takes roughly 35–45 seconds locally because deployment/funding wait for confirmed blocks. Payment takes roughly 20 seconds. Rejection cases fail during proof/circuit construction and usually return quickly. The cumulative case submits 8 after a successful 5 under the hidden 10-per-payment / 12-total policy.
 
 ## Errors encountered and fixes
 

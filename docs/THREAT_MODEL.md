@@ -3,7 +3,7 @@
 ## Protected assets and properties
 
 - Test NIGHT held by the contract.
-- Secrecy of the policy secret, cap, and preconfigured recipient before execution.
+- Secrecy of the policy secret, per-payment cap, cumulative cap, and preconfigured recipient before execution.
 - Integrity of amount, recipient, request commitment, nonce, network, and contract binding.
 - Atomicity between authorization and settlement.
 - Honest demo evidence: no mock may appear as a proof or payment.
@@ -47,9 +47,15 @@
 
 **Mitigation:** the circuit derives a domain-separated nullifier, checks non-membership, and inserts it atomically. Replay tests verify unchanged balances/counters.
 
+### Fresh-nonce aggregate drain
+
+**Attempt:** repeatedly submit payments that are each below the private per-payment cap until the public deposit is exhausted.
+
+**Mitigation:** the policy commitment also binds a private cumulative ceiling. `agent_pay` constrains the next amount against `max_total_spend - cumulative_spend`. The real local test first pays 5, then submits a fresh 8 under a 10-per-payment / 12-total policy; the second request rejects with balances, counter, receipt, nullifier, and cumulative spend unchanged.
+
 ### Wrong private opening
 
-**Attempt:** delegated runtime supplies a different secret/cap/recipient.
+**Attempt:** delegated runtime supplies a different secret/cap/total/recipient.
 
 **Mitigation:** the circuit recomputes the full domain-separated policy commitment and requires equality with the constructor value.
 
@@ -80,8 +86,9 @@
 ## Accepted prototype risks
 
 - Prototype contract custody is unaudited and restricted to test assets.
-- An authorized agent can submit many fresh compliant payments until the deposited public budget is exhausted.
-- No hidden cumulative budget, expiry, revocation, policy rotation, recovery, or multisig.
+- The cumulative ceiling is lifetime-only: there is no epoch/day reset.
+- Funds deposited above the private cumulative ceiling can become locked because owner withdrawal is absent.
+- No expiry, revocation, policy rotation, recovery, or multisig.
 - Contract policy is immutable; changing it requires redeployment.
 - The delegated runtime knows the policy.
 - Public unshielded settlement leaks amount and recipient.
@@ -89,7 +96,7 @@
 
 ## Roadmap mitigations
 
-- Hidden cumulative/epoch budgets and expiry.
+- Epoch/day budgets and expiry.
 - Owner-secret authenticated revoke/withdraw/rotation.
 - Merchant-set membership rather than one fixed recipient.
 - Shielded outgoing settlement.

@@ -12,6 +12,7 @@ import { privateStateFromPolicy } from './witnesses.js';
 export type PrivateMandate = {
   policySecret: Uint8Array;
   maxPerPayment: bigint;
+  maxTotalSpend: bigint;
   allowedRecipient: Uint8Array;
 };
 
@@ -49,6 +50,7 @@ export class MandateClient {
     const commitment = policyCommitment(
       mandate.policySecret,
       mandate.maxPerPayment,
+      mandate.maxTotalSpend,
       mandate.allowedRecipient,
     );
     const deployed = await deployContract<Contract>(providers, {
