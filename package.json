@@ -13,6 +13,7 @@
     "test:contract": "NODE_OPTIONS='--experimental-vm-modules' vitest run src/test/mandate.test.ts",
     "test:proposal": "NODE_OPTIONS='--experimental-vm-modules' vitest run src/test/proposal.test.ts",
     "test:local": "MIDNIGHT_NETWORK=local NODE_OPTIONS='--experimental-vm-modules' vitest run src/test/local.test.ts",
+    "test:preprod": "yarn compile && yarn env:up && MIDNIGHT_NETWORK=preprod tsx --env-file-if-exists=.env.preprod scripts/preprod.ts",
     "env:up": "tsx scripts/env-up.ts",
     "env:down": "docker compose down",
     "proof:up": "docker compose up -d --wait proof-server",
