@@ -12,12 +12,12 @@
     "test": "NODE_OPTIONS='--experimental-vm-modules' vitest run",
     "test:contract": "NODE_OPTIONS='--experimental-vm-modules' vitest run src/test/mandate.test.ts",
     "test:local": "MIDNIGHT_NETWORK=local NODE_OPTIONS='--experimental-vm-modules' vitest run src/test/local.test.ts",
-    "env:up": "docker compose up -d --wait",
+    "env:up": "tsx scripts/env-up.ts",
     "env:down": "docker compose down",
     "proof:up": "docker compose up -d --wait proof-server",
     "proof:down": "docker compose stop proof-server",
     "typecheck": "tsc --noEmit",
-    "demo:smoke": "yarn compile && yarn test:contract && yarn env:up && yarn test:local"
+    "demo:smoke": "yarn compile && yarn test:contract && yarn typecheck && yarn env:up && MIDNIGHT_NETWORK=local tsx scripts/smoke.ts"
   },
   "dependencies": {
     "@midnight-ntwrk/compact-runtime": "0.16.0",
